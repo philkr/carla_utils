@@ -147,7 +147,7 @@ void main(){
             EmitVertex();
         }
     EndPrimitive();
-    
+
     // Front
     gs_out.color = front_color;
     float front_portion = 0.25;
@@ -175,7 +175,7 @@ void main(){
             EmitVertex();
         }
     EndPrimitive();
-    
+
     // Wheels
     gs_out.color = front_color;
     float l = 0.2;
