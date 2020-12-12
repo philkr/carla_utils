@@ -9,6 +9,8 @@
 #include "carla/Debug.h"
 #include "carla/road/element/RoadInfo.h"
 
+#include <memory>
+
 namespace carla {
 namespace road {
 namespace element {
