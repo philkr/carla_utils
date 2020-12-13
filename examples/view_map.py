@@ -8,10 +8,10 @@ import numpy as np
 def check_import(xodr_path):
     cmap = carla_map.Map('unused', pathlib.Path(xodr_path).read_text())
 
-    points = [x.transform.location for x in cmap.generate_waypoints(10)]
-    points = np.array([(point.x, point.y) for point in points])
+    road = [x.transform.location for x in cmap.generate_waypoints(10)]
+    road = np.array([(r.x, r.y) for r in road])
 
-    plt.plot(points[:, 0], points[:, 1], 'r.')
+    plt.plot(road[:, 0], road[:, 1], 'r.')
     plt.show()
 
 
