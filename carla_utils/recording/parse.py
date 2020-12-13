@@ -53,7 +53,10 @@ class Read:
 
 class Actor:
     def __init__(self, tpe, location, rotation, desc_uid, desc_id, attributes):
-        self.type, self.location, self.rotation, self.uid, self.desc, self.attributes = tpe, location, rotation, desc_uid, desc_id, attributes
+        self.type = tpe
+        self.location, self.rotation = location, rotation
+        self.uid, self.desc = desc_uid, desc_id
+        self.attributes = attributes
 
     @property
     def forward(self):
