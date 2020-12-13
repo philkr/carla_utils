@@ -6,10 +6,34 @@
 
 #pragma once
 
-#include <boost/iterator/transform_iterator.hpp>
-
 namespace carla {
 namespace iterator {
+
+  template<typename R, typename I, typename F>
+  class TransformIterator {
+  protected:
+    I iterator_;
+    F f_;
+  public:
+    // iterator traits
+    using difference_type = typename I::difference_type;
+    using value_type = R;
+    using pointer = std::remove_reference_t<R>*;
+    using reference = std::remove_reference_t<R>&;
+    using iterator_category = std::forward_iterator_tag;
+
+    // Iterator definition
+    TransformIterator(I iterator, F f):iterator_(iterator),f_(f) {}
+    value_type operator*() { return f_(*iterator_); }
+    TransformIterator& operator++() {iterator_++; return *this;}
+    TransformIterator operator++(int) {TransformIterator retval = *this; ++(*this); return retval;}
+    bool operator==(TransformIterator other) const {return iterator_ == other.iterator_;}
+    bool operator!=(TransformIterator other) const {return !(*this == other);}
+  };
+  template<typename R, typename I, typename F>
+  TransformIterator<R, I, F> make_transform_iterator(I iterator, F f) {
+    return TransformIterator<R, I, F>(iterator, f);
+  }
 
   /// Creates an iterator over non-const references to the keys of a map.
   template <typename It>
@@ -17,7 +41,7 @@ namespace iterator {
     using first_value_type = typename It::value_type::first_type;
     using decay_first_value_type = typename std::remove_cv_t<typename std::remove_reference_t<first_value_type>>;
     using ref_to_first = decay_first_value_type &;
-    return boost::make_transform_iterator(it, [](auto &pair) -> ref_to_first { return pair.first; });
+    return make_transform_iterator<ref_to_first>(it, [](auto &pair) -> ref_to_first { return pair.first; });
   }
 
   /// Creates an iterator over const references to the keys of a map.
@@ -26,7 +50,7 @@ namespace iterator {
     using first_value_type = typename It::value_type::first_type;
     using decay_first_value_type = typename std::remove_cv_t<typename std::remove_reference_t<first_value_type>>;
     using const_ref_to_first = const decay_first_value_type &;
-    return boost::make_transform_iterator(it, [](const auto &pair) -> const_ref_to_first { return pair.first; });
+    return make_transform_iterator<const_ref_to_first>(it, [](const auto &pair) -> const_ref_to_first { return pair.first; });
   }
 
   /// Creates an iterator over non-const references to the values of a map.
@@ -35,7 +59,7 @@ namespace iterator {
     using second_value_type = typename It::value_type::second_type;
     using decay_second_value_type = typename std::remove_cv_t<typename std::remove_reference_t<second_value_type>>;
     using ref_to_second = decay_second_value_type &;
-    return boost::make_transform_iterator(it, [](auto &pair) -> ref_to_second { return pair.second; });
+    return make_transform_iterator<ref_to_second>(it, [](auto &pair) -> ref_to_second { return pair.second; });
   }
 
   /// Creates an iterator over const references to the values of a map.
@@ -44,7 +68,7 @@ namespace iterator {
     using second_value_type = typename It::value_type::second_type;
     using decay_second_value_type = typename std::remove_cv_t<typename std::remove_reference_t<second_value_type>>;
     using const_ref_to_second = const decay_second_value_type &;
-    return boost::make_transform_iterator(it, [](const auto &pair) -> const_ref_to_second { return pair.second; });
+    return make_transform_iterator<const_ref_to_second>(it, [](const auto &pair) -> const_ref_to_second { return pair.second; });
   }
 
 } // namespace iterator
