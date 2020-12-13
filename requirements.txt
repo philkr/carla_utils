@@ -1,3 +1,2 @@
 cppimport
 pybind11 >= 2.6.0
-matplotlib >= 3.3

@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include <boost/algorithm/string.hpp>
+#include <algorithm>
+#include <regex>
 
 namespace carla {
 
@@ -24,47 +25,69 @@ namespace carla {
 
     template <typename Range1T, typename Range2T>
     static bool StartsWith(const Range1T &input, const Range2T &test) {
-      return boost::algorithm::istarts_with(input, test);
+      size_t n = std::end(test)-std::begin(test);
+      if (std::end(input)-std::begin(input) < n)
+        return false;
+      return std::equal(std::begin(input), std::begin(input)+n, std::begin(test), std::end(test));
     }
 
     template <typename Range1T, typename Range2T>
     static bool EndsWith(const Range1T &input, const Range2T &test) {
-      return boost::algorithm::iends_with(input, test);
+      size_t n = std::end(test)-std::begin(test);
+      if (std::end(input)-std::begin(input) < n)
+        return false;
+      return std::equal(std::end(input)-n, std::end(input), std::begin(test), std::end(test)+n);
     }
 
     template <typename WritableRangeT>
     static void ToLower(WritableRangeT &str) {
-      boost::algorithm::to_lower(str);
+      std::transform(std::begin(str), std::end(str), std::begin(str), [](int c) {return std::tolower(c);});
     }
 
     template <typename SequenceT>
-    static auto ToLowerCopy(const SequenceT &str) {
-      return boost::algorithm::to_lower_copy(str);
+    static auto ToLowerCopy(SequenceT str) {
+      ToLower(str);
+      return str;
     }
 
     template <typename WritableRangeT>
     static void ToUpper(WritableRangeT &str) {
-      boost::algorithm::to_upper(str);
+      std::transform(std::begin(str), std::end(str), std::begin(str), [](int c) {return std::toupper(c);});
     }
 
     template <typename SequenceT>
-    static auto ToUpperCopy(const SequenceT &str) {
-      return boost::algorithm::to_upper_copy(str);
+    static auto ToUpperCopy(SequenceT str) {
+      ToUpper(str);
+      return str;
+    }
+
+    template <typename WritableRangeT>
+    static void lTrim(WritableRangeT &s) {
+        s.erase(std::begin(s), std::find_if(std::begin(s), std::end(s), [](int c) {return !std::isspace(c);}));
+    }
+
+    template <typename WritableRangeT>
+    static void rTrim(WritableRangeT &s) {
+        s.erase(std::find_if(std::rbegin(s), std::rend(s), [](int c) {return !std::isspace(c);}).base(), std::end(s));
     }
 
     template <typename WritableRangeT>
     static void Trim(WritableRangeT &str) {
-      boost::algorithm::trim(str);
+      rTrim(str);
+      lTrim(str);
     }
 
     template <typename SequenceT>
-    static auto TrimCopy(const SequenceT &str) {
-      return boost::algorithm::trim_copy(str);
+    static auto TrimCopy(SequenceT str) {
+      Trim(str);
+      return str;
     }
 
     template<typename Container, typename Range1T, typename Range2T>
     static void Split(Container &destination, const Range1T &str, const Range2T &separators) {
-      boost::split(destination, str, boost::is_any_of(separators));
+      std::regex re(std::string("[")+separators+std::string("]+"));
+      std::sregex_token_iterator first{str.begin(), str.end(), re, -1}, last;
+      destination = Container(first, last);
     }
 
     /// Match @a str with the Unix shell-style @a wildcard_pattern.
