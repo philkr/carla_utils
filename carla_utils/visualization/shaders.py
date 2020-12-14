@@ -118,7 +118,7 @@ void main(){
 
 CAR_GS = """{{HEAD}}
 layout(points) in;
-layout(triangle_strip, max_vertices = 12) out;
+layout(triangle_strip, max_vertices = 8) out;
 uniform vec3 front_color = vec3(0,0,0);
 void main(){
     // Body
@@ -132,16 +132,13 @@ void main(){
     
     // Front
     gs_out.color = front_color;
-    float arc = 0.75;
-#define N 4
-    for(int i=0; i<N; i++) {
-        float a = radians(90.*i/(N-1));
-        float sa = arc*sin(a), ca = arc-arc*cos(a);
-        gl_Position = vec4(view_matrix * vec3(gs_in[0].position+(1-ca)*gs_in[0].right+(1+sa)*gs_in[0].forward, 1), -zorder/100., 1);
-        EmitVertex();
-        gl_Position = vec4(view_matrix * vec3(gs_in[0].position+(ca-1)*gs_in[0].right+(1+sa)*gs_in[0].forward, 1), -zorder/100., 1);
-        EmitVertex();
-    }
+    float front_portion = 0.25;
+    for (int k=0; k<=1; k++)
+        for (int sa=-1; sa<=1; sa+=2) {
+            float ca = (1-2*front_portion*k);
+            gl_Position = vec4(view_matrix * vec3(gs_in[0].position+sa*gs_in[0].right+ca*gs_in[0].forward, 1), -zorder/100.-1e-4, 1);
+            EmitVertex();
+        }
     EndPrimitive();
 }
 """
