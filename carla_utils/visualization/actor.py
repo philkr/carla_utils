@@ -4,7 +4,7 @@ from ..recording import AgentProperty
 from . import color
 import numpy as np
 
-__all__ = ["TrafficLightRenderer"]
+__all__ = ["BikeRenderer", "CarRenderer", "TrafficLightRenderer"]
 
 
 class ActorRenderer(RenderFunction):

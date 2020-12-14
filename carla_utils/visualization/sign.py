@@ -5,8 +5,9 @@ import numpy as np
 
 __all__ = ["StopSignRenderer", "YieldSignRenderer", "SpeedLimitRenderer"]
 
-# Helper to map carla to numpy
+
 def _xy(p):
+    # Helper to map carla to numpy
     return np.array((p.x, p.y))
 
 

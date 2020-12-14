@@ -5,8 +5,9 @@ import numpy as np
 
 __all__ = ["MapOutline", "MapRoad"]
 
-# Helper to map carla to numpy
+
 def _xy(p):
+    # Helper to map carla to numpy
     return np.array((p.x, p.y))
 
 
