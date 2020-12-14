@@ -20,3 +20,7 @@ if __name__ == "__main__":
                 actor_attributes = set.union(*[set(x.attributes) for f in frames for x in getattr(f, n)])
                 if actor_attributes:
                     print('    attributes:', ', '.join(actor_attributes))
+    print('landmarks')
+
+    for t, n in sorted(list({(m.type, m.name) for m in world_map.get_all_landmarks()})):
+        print('  # {:20}{!r:>5}'.format(n+' ({})'.format(t), len(world_map.get_all_landmarks_of_type(t))))

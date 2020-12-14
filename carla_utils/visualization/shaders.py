@@ -55,15 +55,33 @@ layout(points) in;
 layout(triangle_strip, max_vertices = 4) out;
 void main(){
     gs_out.color = gs_in[0].color;
-    gl_Position = vec4(view_matrix * vec3(gs_in[0].position+gs_in[0].right+gs_in[0].forward, 1), -zorder/100., 1);
-    EmitVertex();
-    gl_Position = vec4(view_matrix * vec3(gs_in[0].position+gs_in[0].right-gs_in[0].forward, 1), -zorder/100., 1);
-    EmitVertex();
-    gl_Position = vec4(view_matrix * vec3(gs_in[0].position-gs_in[0].right+gs_in[0].forward, 1), -zorder/100., 1);
-    EmitVertex();
-    gl_Position = vec4(view_matrix * vec3(gs_in[0].position-gs_in[0].right-gs_in[0].forward, 1), -zorder/100., 1);
-    EmitVertex();
+    for (int a=-1; a<=1; a+=2)
+        for (int b=-1; b<=1; b+=2) {
+            gl_Position = vec4(view_matrix * vec3(gs_in[0].position+a*gs_in[0].right+b*gs_in[0].forward, 1), -zorder/100., 1);
+            EmitVertex();
+        }
     EndPrimitive();
+}
+"""
+FILLED_RECT_GS = """{{HEAD}}
+layout(points) in;
+layout(triangle_strip, max_vertices = 8) out;
+uniform vec3 fill_color = vec3(0,0,0);
+uniform float border_size = 0;
+void main(){
+    gs_out.color = fill_color;
+    for (int s=0; s<=1; s++) {
+        float e = border_size * s;
+        vec2 r = gs_in[0].right + e * normalize(gs_in[0].right);
+        vec2 f = gs_in[0].forward + e * normalize(gs_in[0].forward);
+        for (int a=-1; a<=1; a+=2)
+            for (int b=-1; b<=1; b+=2) {
+                gl_Position = vec4(view_matrix * vec3(gs_in[0].position+a*r+b*f, 1), -zorder/100. + 1e-4*s, 1);
+                EmitVertex();
+            }
+        EndPrimitive();
+        gs_out.color = gs_in[0].color;
+    }
 }
 """
 NGON_OUTLINE_GS = """{{HEAD}}

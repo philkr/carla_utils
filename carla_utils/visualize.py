@@ -20,4 +20,7 @@ if __name__ == "__main__":
     view_matrix = eval(args.view_matrix, dict(bounding_view_matrix=bounding_view_matrix, const_view_matrix=const_view_matrix, follow_view_matrix=follow_view_matrix))
 
     renderer = Renderer(args.width, args.height)
-    renderer.save_video(world_map, frames, args.output, view_matrix=view_matrix, fps=args.fps)
+    if len(frames) == 1:
+        renderer.save_image(world_map, frames[0], args.output, view_matrix=view_matrix)
+    else:
+        renderer.save_video(world_map, frames, args.output, view_matrix=view_matrix, fps=args.fps)

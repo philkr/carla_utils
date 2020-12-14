@@ -275,6 +275,7 @@ PYBIND11_MODULE(_map, m) {
     .def_property_readonly("waypoint", &cc::Landmark::GetWaypoint)
     .def_property_readonly("transform", &cc::Landmark::GetTransform)
     .def("get_lane_validities", &GetLaneValidities)
+    .def("__str__", _STR("id", "name", "type", "value", "transform", "width", "height"))
   ;
 
   /******* Geometry *******/

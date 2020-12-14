@@ -64,7 +64,7 @@ class BikeRenderer(ActorRenderer):
 
 @RenderFunction.register
 class TrafficLightRenderer(ActorRenderer):
-    SIZE = 8.0
+    SIZE = 4.0
     ACTOR_TYPE = 'traffic_lights'
 
     COLORS = {

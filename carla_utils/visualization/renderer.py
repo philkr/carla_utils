@@ -118,6 +118,14 @@ class Renderer:
         image = image.transpose(Image.FLIP_TOP_BOTTOM)
         return image
 
+    def save_image(self, world_map, frame, output, view_matrix=None):
+        import imageio
+        import numpy as np
+        writer = imageio.get_writer(output)
+        image = self.render(world_map, frame, view_matrix=view_matrix)
+        writer.append_data(np.array(image))
+        writer.close()
+
     def save_video(self, world_map, frames, output, view_matrix=None, fps=30):
         import imageio
         import numpy as np

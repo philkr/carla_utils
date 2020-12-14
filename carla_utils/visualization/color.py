@@ -26,7 +26,9 @@ TANGO_HTML_COLORS = {"butter1": "#fce94f",
                      "aluminium3": "#babdb6",
                      "aluminium4": "#888a85",
                      "aluminium5": "#555753",
-                     "aluminium6": "#2e3436"}
+                     "aluminium6": "#2e3436",
+                     "white": "#ffffff",
+                     "black": "#000000"}
 
 HEX = {k: int.from_bytes(bytes.fromhex(v[1:]), 'big') for k, v in TANGO_HTML_COLORS.items()}
 NP4 = {k: np.array([(v >> 16) & 255, (v >> 8) & 255, (v >> 0) & 255, 255]).astype('f4')/255. for k, v in HEX.items()}
