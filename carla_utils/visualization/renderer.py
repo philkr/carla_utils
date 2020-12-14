@@ -115,7 +115,6 @@ class Renderer:
         self._ctx.copy_framebuffer(src=self._fbo_msaa, dst=self._fbo)
         data = self._fbo.read(components=3)
         image = Image.frombytes('RGB', self._fbo.size, data)
-        image = image.transpose(Image.FLIP_TOP_BOTTOM)
         return image
 
     def save_image(self, world_map, frame, output, view_matrix=None):
@@ -158,26 +157,28 @@ def bounding_view_matrix(margin=20):
 
 def follow_view_matrix(actor_id, w, h, rotate=False):
     """View matrix following an object with id actor_id, and crop a rectangle of size w x h"""
+    w2, h2 = w/2., h/2.
+
     def wrapped(world_map, frame, renderers):
         a = frame.actor_by_id(actor_id)
         if a is None:
-            return np.array([1.0 / w, 0,
-                             0, 1.0 / h,
+            return np.array([1.0 / w2, 0,
+                             0, 1.0 / h2,
                              0, 0], dtype='f4')
-        up, right = np.array([1, 0]), np.array([0, 1])
+        up, right = -np.array([1, 0]), -np.array([0, 1])
         if rotate:
-            up, right = a.right[:2], a.forward[:2]
-        return np.array([up[0] / w, up[1] / h,
-                         right[0] / w, right[1] / h,
-                         -up.dot(a.location[:2]) / w,
-                         -right.dot(a.location[:2]) / h], dtype='f4')
+            up, right = a.right[:2], -a.forward[:2]
+        return np.array([up[0] / w2, right[0] / h2,
+                         up[1] / w2, right[1] / h2,
+                         -up.dot(a.location[:2]) / w2,
+                         -right.dot(a.location[:2]) / h2], dtype='f4')
     return wrapped
 
 
 def const_view_matrix(x, y, w, h):
-    """View matrix following an object"""
+    """Constant view matrix centered at (x, y) with a view size of (w, h)"""
     def viewmat(world_map, frame, renderers):
-        return np.array([1.0 / w, 0,
-                         0, 1.0 / h,
-                         -x / w, -y / h], dtype='f4')
+        return np.array([2.0 / w, 0,
+                         0, 2.0 / h,
+                         -2 * x / w, -2 * y / h], dtype='f4')
     return viewmat

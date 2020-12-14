@@ -24,7 +24,6 @@ class AbstractSignRenderer(RenderFunction):
             actors = []
             for t in self.SIGN_TYPES:
                 actors.extend(world_map.get_all_landmarks_of_type(t))
-            print(self.SIGN_TYPES, len(actors))
             if len(actors):
                 self._position = np.zeros((len(actors), 2), dtype='f4')
                 self._right = np.zeros((len(actors), 2), dtype='f4')
@@ -32,7 +31,6 @@ class AbstractSignRenderer(RenderFunction):
                 self._color = np.zeros((len(actors), 3), dtype='f4')
                 for i, a in enumerate(actors):
                     t = a.transform
-                    print(a.width, a.height, t)
                     w, h = max(self.MIN_SIZE, a.width)/2, max(self.MIN_SIZE, a.height)/2
                     self._position[i] = _xy(t.location)
                     self._right[i] = _xy(t.get_right_vector()) * w
