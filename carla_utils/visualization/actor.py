@@ -1,5 +1,6 @@
 from .renderer import RenderFunction
 from .shaders import NGON_GS, CAR_GS, BIKE_GS
+from ..recording import AgentProperty
 from . import color
 import numpy as np
 
@@ -29,9 +30,14 @@ class ActorRenderer(RenderFunction):
             self._forward = np.zeros((len(actors), 2), dtype='f4')
             self._color = np.zeros((len(actors), 3), dtype='f4')
             for i, a in enumerate(actors):
+                w2, h2 = w / 2., h / 2.
+                prop = AgentProperty.get(a.desc)
+                if prop is not None and 'extent' in prop:
+                    h2, w2, _ = prop.extent
+
                 self._position[i] = a.location[:2]
-                self._right[i] = a.right[:2] * w / 2.
-                self._forward[i] = a.forward[:2] * h / 2.
+                self._right[i] = a.right[:2] * w2
+                self._forward[i] = a.forward[:2] * h2
                 self._color[i] = self.color(a)
             return {'position', 'right', 'forward', 'color'}
 

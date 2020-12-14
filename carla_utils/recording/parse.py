@@ -87,6 +87,7 @@ class Frame:
 
     def add_actor(self, id, a):
         assert id not in self._actors, 'Actor {} already exists'.format(id)
+        setattr(a, 'id', id)
         self._actors[id] = a
 
     def delete_actor(self, id):
@@ -177,7 +178,7 @@ def parse(filename):
                         tpe = attribute_type_map[r_packet.uint8()]
                         name = r_packet.string().decode()
                         attributes[name] = tpe(r_packet.string())
-                    current_frame.add_actor(id_, Actor(type_, loc, rot, desc_uid, desc_str, attributes))
+                    current_frame.add_actor(id_, Actor(type_, loc, rot, desc_uid, desc_str.decode(), attributes))
 
             elif pid == 3:  # Event Del
                 n = r_packet.uint16()

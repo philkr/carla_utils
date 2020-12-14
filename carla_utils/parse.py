@@ -14,6 +14,9 @@ if __name__ == "__main__":
         print('# {:15}{!r:>10}'.format(n, len(getattr(frames[0], n))))
     if args.verbose:
         for n in ['cars', 'bikes', 'walkers', 'traffic_lights', 'other_actors', 'invalid_actors']:
-            actor_ids = [x.id for x in getattr(frames[0], n) if hasattr(x, 'id')]
-            if len(actor_ids):
-                print('  {:15}{}'.format(n, ','.join([str(id) for id in sorted(actor_ids)])))
+            actor_ids = {x.id for f in frames for x in getattr(f, n)}
+            if actor_ids:
+                print('  {:15}{}'.format(n, ','.join([str(id) for id in sorted(list(actor_ids))])))
+                actor_attributes = set.union(*[set(x.attributes) for f in frames for x in getattr(f, n)])
+                if actor_attributes:
+                    print('    attributes:', ', '.join(actor_attributes))
