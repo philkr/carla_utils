@@ -1,26 +1,23 @@
 import queue
 import numpy as np
-import carla
 
 from PIL import Image
+from carla import Location, Rotation, Transform
 
 
 class Camera(queue.Queue):
-    def __init__(self, blueprints, w, h, fov, x, y, z, pitch, yaw):
+    blueprint = 'sensor.camera.rgb'
+
+    def __init__(self, attributes, x=0.0, y=0.0, z=0.0, pitch=0.0, yaw=0.0, roll=0.0):
         super().__init__()
 
-        bp = blueprints.find('sensor.camera.rgb')
-        bp.set_attribute('image_size_x', str(w))
-        bp.set_attribute('image_size_y', str(h))
-        bp.set_attribute('fov', str(fov))
-
-        loc = carla.Location(x=x, y=y, z=z)
-        rot = carla.Rotation(pitch=pitch, yaw=yaw)
-        transform = carla.Transform(loc, rot)
-
-        self.blueprint = bp
-        self.transform = transform
+        self.attributes = attributes
+        self.transform = Transform(Location(x=x, y=y, z=z), Rotation(pitch=pitch, yaw=yaw))
         self.callback = self.put
+
+    @classmethod
+    def from_json(cls, config):
+        return cls(config['attributes'], **config['transform'])
 
     def __iter__(self):
         last_data = None

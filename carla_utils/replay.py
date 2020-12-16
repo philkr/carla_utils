@@ -1,37 +1,9 @@
-import time
 import pathlib
 import carla
 
-from contextlib import contextmanager
-from .recording.parse import parse
-from .sensors.camera import Camera
 from .common import tqdm, safe_sync_mode
-
-
-@contextmanager
-def sensor_pool(world, target_id, **kwargs):
-    """
-    Spawns and cleans up after sensors.
-    """
-    actor = world.get_actor(target_id)
-    pool = list()
-
-    try:
-        for sensor_id, sensor in kwargs.items():
-            sensor_actor = world.spawn_actor(sensor.blueprint, sensor.transform, actor)
-            sensor_actor.listen(sensor.callback)
-
-            pool.append(sensor_actor)
-
-        yield
-    finally:
-        # Need to wait for the sensor callbacks to catch up.
-        time.sleep(10)
-
-        for sensor_actor in pool:
-            sensor_actor.destroy()
-
-        pool.clear()
+from .recording.parse import parse
+from .recording.sensors import sensor_pool, make_sensor_dict
 
 
 def save_data(sensor_dict, save_dir):
@@ -50,10 +22,11 @@ def save_data(sensor_dict, save_dir):
         print('%d frames saved to %s.' % (total, sensor_dir))
 
 
-def main(recording, save_dir, target_id, fps, host, port):
+def main(recording, save_dir, target_id, fps, host, port, sensor_config):
     assert save_dir.parent.exists(), '%s is not a valid directory.' % save_dir
     assert not save_dir.exists(), '%s already exists.' % save_dir
 
+    sensor_dict = make_sensor_dict(*sensor_config)
     world_map, frames = parse(recording)
 
     # Skip the last second. CARLA hangs if we run to the end...
@@ -70,13 +43,6 @@ def main(recording, save_dir, target_id, fps, host, port):
     client.set_replayer_time_factor(1.0)
 
     world = client.load_world(world_map.name)
-    blueprints = world.get_blueprint_library()
-
-    # TODO: Make this from a config file.
-    sensor_dict = {
-            'rgb': Camera(blueprints, 512, 512, 90, -5.5, 0, 2.5, 0, 0),
-            'rgb_left': Camera(blueprints, 512, 512, 90, -5.5, 0, 2.5, 0, -45),
-            }
 
     with safe_sync_mode(client, world, fps=fps):
         print(client.replay_file(recording, 0.0, ticks / fps, target_id))
@@ -84,7 +50,7 @@ def main(recording, save_dir, target_id, fps, host, port):
         # Tick once to start the recording.
         world.tick()
 
-        with sensor_pool(world, target_id, **sensor_dict):
+        with sensor_pool(world, target_id, sensor_dict):
             for t in tqdm(range(ticks-1)):
                 world.tick()
 
@@ -98,6 +64,7 @@ if __name__ == "__main__":
     parser.add_argument('recording', type=lambda x: str(pathlib.Path(x).resolve()))
     parser.add_argument('--save_dir', type=lambda x: pathlib.Path(x).resolve(), required=True)
     parser.add_argument('--target_id', type=int, default=0)
+    parser.add_argument('--sensor_config', type=pathlib.Path, nargs='+')
 
     parser.add_argument('--fps', type=int, default=10)
     parser.add_argument('--host', default='127.0.0.1')
