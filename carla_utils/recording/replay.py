@@ -1,4 +1,4 @@
-import time
+import queue
 
 from contextlib import contextmanager
 from .sensors import BLUEPRINT_TO_SENSOR
@@ -9,58 +9,62 @@ class SensorConfiguration(object):
     def __init__(self, sensors, save_dir=None):
         self.save_dir = save_dir
 
+        self.job_queue = queue.Queue()
         self.sensors = sensors
         self.actors = dict()
 
     def hook(self, world):
-        for s_name, s in self.sensors.items():
-            self.actors[s_name] = s.hook(world)
+        for s in self.sensors:
+            self.actors[s.name] = s.hook(world, self.job_queue)
 
-    def finalize(self, frame_number, sleep_time=1.0, retries=10):
-        print('World frame: %d' % frame_number)
+    def wait(self, frame_number, timeout=1.0):
+        unfinished = {s.name for s in self.sensors}
 
-        for s_name, a in self.actors.items():
-            print('Sensor: %s' % s_name)
+        while unfinished:
+            name, frame = self.job_queue.get(True, timeout=timeout)
 
-            for retry in range(1, retries+1):
-                n = self.sensors[s_name].get_frame_number()
-                print('Frame: %d try %d / %d' % (n, retry, retries), end='\r')
+            if name in unfinished and frame == frame_number:
+                unfinished.remove(name)
 
-                if n == frame_number:
-                    print('\nSuccess.')
-                    break
+    def override(self, override_args):
+        override_dict = dict()
 
-                time.sleep(sleep_time)
-            else:
-                print('\nFailed.')
+        for i in range(0, len(override_args), 2):
+            key = override_args[i].lstrip('-')
+            val = eval(override_args[i+1])
 
-            a.destroy()
+            override_dict[key] = val
 
-        self.actors.clear()
+        for s in self.sensors:
+            s.override(override_dict)
 
     @classmethod
-    def from_files(cls, yaml_files, save_dir):
+    def from_files(cls, config_yaml, save_dir):
         import yaml
-        import pathlib
 
         assert save_dir.parent.exists(), '%s is not a valid directory.' % save_dir
         assert not save_dir.exists(), '%s already exists.' % save_dir
 
         save_dir.mkdir()
 
-        sensors = dict()
+        sensors = list()
 
-        for path in map(pathlib.Path, yaml_files):
-            name = path.stem
-
+        for config in yaml.load_all(config_yaml.read_text()):
+            name = config['name']
             sensor_dir = save_dir / name
             sensor_dir.mkdir()
 
-            config = yaml.safe_load(path.read_text())
             sensor_class = BLUEPRINT_TO_SENSOR[config['sensor']]
-            sensors[name] = sensor_class.from_json(config, save_dir=sensor_dir)
+            s = sensor_class.from_json(name, config, save_dir=sensor_dir)
+            sensors.append(s)
 
         return cls(sensors)
+
+    def __del__(self):
+        for _, a in self.actors.items():
+            a.destroy()
+
+        self.actors.clear()
 
 
 @contextmanager

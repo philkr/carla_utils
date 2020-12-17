@@ -1,5 +1,4 @@
-from abc import ABC
-from multiprocessing import Lock
+from threading import Lock
 from carla import Location, Rotation, Transform
 
 
@@ -25,19 +24,23 @@ def transform_from_json(data):
 
 
 class Sensor(object):
-    blueprint = 'NOT_SET'
+    blueprint = None
 
-    def __init__(self, attributes, transform):
+    def __init__(self, name, attributes, transform):
+        self.name = name
         self.attributes = attributes
         self.transform = transform
+        self.target_id = 0
 
         self.lock = Lock()
         self.ticks = 0
         self.frame_number = -1
 
+    def override(self, override_dict):
+        self.target_id = override_dict.get('target_id', self.target_id)
+
     def get_frame_number(self):
-        with self.lock:
-            return self.frame_number
+        return self.frame_number
 
     def make_blueprint(self, world):
         blueprint = world.get_blueprint_library().find(self.blueprint)
@@ -45,18 +48,20 @@ class Sensor(object):
             blueprint.set_attribute(key, str(val))
         return blueprint
 
-    def hook(self, world):
+    def hook(self, world, job_queue):
         blueprint = self.make_blueprint(world)
-        target_actor = world.get_actor(self.target_actor)
+        target_actor = world.get_actor(self.target_id)
 
         actor = world.spawn_actor(blueprint, self.transform, target_actor)
-        actor.listen(self.callback)
+        actor.listen(lambda x: self.callback(x, job_queue))
 
         return actor
 
-    def callback(self, sensor_data):
+    def callback(self, sensor_data, job_queue):
         with self.lock:
             self._locked_callback(sensor_data)
+
+        job_queue.put((self.name, sensor_data.frame_number))
 
     def _locked_callback(self, sensor_data):
         self.ticks += 1
