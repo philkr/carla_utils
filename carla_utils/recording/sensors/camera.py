@@ -1,39 +1,33 @@
-import queue
 import numpy as np
+import imageio
 
-from PIL import Image
-from carla import Location, Rotation, Transform
+from .base import Sensor, transform_from_json
 
 
-class Camera(queue.Queue):
+class Camera(Sensor):
     blueprint = 'sensor.camera.rgb'
 
-    def __init__(self, attributes, x=0.0, y=0.0, z=0.0, pitch=0.0, yaw=0.0, roll=0.0):
-        super().__init__()
+    def __init__(self, *args, save_dir=None, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.attributes = attributes
-        self.transform = Transform(Location(x=x, y=y, z=z), Rotation(pitch=pitch, yaw=yaw))
-        self.callback = self.put
+        self.target_actor = 86
+        self.save_dir = save_dir
 
     @classmethod
-    def from_json(cls, config):
-        return cls(config['attributes'], **config['transform'])
+    def from_json(cls, config, save_dir=None):
+        attributes = config['attributes']
+        transform = transform_from_json(config['transform'])
 
-    def __iter__(self):
-        last_data = None
+        return cls(attributes, transform, save_dir=save_dir)
 
-        while self.qsize() > 0:
-            data = self.get()
-
-            if last_data is None or data.timestamp != last_data.timestamp:
-                yield data
-
-            last_data = data
-
-    def save(self, data, save_dir, frame_id):
-        array = np.frombuffer(data.raw_data, dtype=np.uint8)
-        array = np.reshape(array, (data.height, data.width, 4))
+    def _locked_callback(self, sensor_data):
+        array = np.frombuffer(sensor_data.raw_data, dtype=np.uint8)
+        array = np.reshape(array, (sensor_data.height, sensor_data.width, 4))
         array = array[..., :3]
         array = array[..., ::-1]
 
-        Image.fromarray(array).save(save_dir / ('%05d.png' % frame_id))
+        writer = imageio.get_writer(self.save_dir / ('%d.png' % self.ticks))
+        writer.append_data(array)
+        writer.close()
+
+        super()._locked_callback(sensor_data)
