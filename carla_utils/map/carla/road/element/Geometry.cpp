@@ -359,22 +359,23 @@ namespace element {
   }
 
   DirectedPoint GeometryPoly3::PosFromDist(double dist) const {
-    auto result = _rtree.GetNearestNeighbours(
-        Rtree::BPoint(static_cast<float>(dist))).front();
-
-    auto &val1 = result.second.first;
-    auto &val2 = result.second.second;
-
-    double rate = (val2.s - dist) / (val2.s - val1.s);
-    double u = rate * val1.u + (1.0 - rate) * val2.u;
-    double v = rate * val1.v + (1.0 - rate) * val2.v;
-    double tangent = atan((rate * val1.t + (1.0 - rate) * val2.t)); // ?
-
-    geom::Vector2D pos = RotatebyAngle(_heading, u, v);
-    DirectedPoint p(_start_position, _heading + tangent);
-    p.location.x += pos.x;
-    p.location.y += pos.y;
-    return p;
+    throw std::logic_error("GeometryPoly3::PosFromDist not implemented!");
+//    auto result = _rtree.GetNearestNeighbours(
+//        Rtree::BPoint(static_cast<float>(dist))).front();
+//
+//    auto &val1 = result.second.first;
+//    auto &val2 = result.second.second;
+//
+//    double rate = (val2.s - dist) / (val2.s - val1.s);
+//    double u = rate * val1.u + (1.0 - rate) * val2.u;
+//    double v = rate * val1.v + (1.0 - rate) * val2.v;
+//    double tangent = atan((rate * val1.t + (1.0 - rate) * val2.t)); // ?
+//
+//    geom::Vector2D pos = RotatebyAngle(_heading, u, v);
+//    DirectedPoint p(_start_position, _heading + tangent);
+//    p.location.x += pos.x;
+//    p.location.y += pos.y;
+//    return p;
   }
 
   std::pair<float, float> GeometryPoly3::DistanceTo(const geom::Location & /*p*/) const {
@@ -384,55 +385,57 @@ namespace element {
   }
 
   void GeometryPoly3::PreComputeSpline() {
-    // Roughly the interval size in m
-    constexpr double interval_size = 0.3;
-    const double delta_u = interval_size; // interval between values of u
-    double current_s = 0;
-    double current_u = 0;
-    double last_u = 0;
-    double last_v = _poly.Evaluate(current_u);
-    double last_s = 0;
-    RtreeValue last_val{last_u, last_v, last_s, _poly.Tangent(current_u)};
-    while (current_s < _length + delta_u) {
-      current_u += delta_u;
-      double current_v = _poly.Evaluate(current_u);
-      double du = current_u - last_u;
-      double dv = current_v - last_v;
-      double ds = sqrt(du * du + dv * dv);
-      current_s += ds;
-      double current_t = _poly.Tangent(current_u);
-      RtreeValue current_val{current_u, current_v, current_s, current_t};
-
-      Rtree::BPoint p1(static_cast<float>(last_s));
-      Rtree::BPoint p2(static_cast<float>(current_s));
-      _rtree.InsertElement(Rtree::BSegment(p1, p2), last_val, current_val);
-
-      last_u = current_u;
-      last_v = current_v;
-      last_s = current_s;
-      last_val = current_val;
-
-    }
+    throw std::logic_error("GeometryPoly3::PreComputeSpline not implemented!");
+//    // Roughly the interval size in m
+//    constexpr double interval_size = 0.3;
+//    const double delta_u = interval_size; // interval between values of u
+//    double current_s = 0;
+//    double current_u = 0;
+//    double last_u = 0;
+//    double last_v = _poly.Evaluate(current_u);
+//    double last_s = 0;
+//    RtreeValue last_val{last_u, last_v, last_s, _poly.Tangent(current_u)};
+//    while (current_s < _length + delta_u) {
+//      current_u += delta_u;
+//      double current_v = _poly.Evaluate(current_u);
+//      double du = current_u - last_u;
+//      double dv = current_v - last_v;
+//      double ds = sqrt(du * du + dv * dv);
+//      current_s += ds;
+//      double current_t = _poly.Tangent(current_u);
+//      RtreeValue current_val{current_u, current_v, current_s, current_t};
+//
+//      Rtree::BPoint p1(static_cast<float>(last_s));
+//      Rtree::BPoint p2(static_cast<float>(current_s));
+//      _rtree.InsertElement(Rtree::BSegment(p1, p2), last_val, current_val);
+//
+//      last_u = current_u;
+//      last_v = current_v;
+//      last_s = current_s;
+//      last_val = current_val;
+//
+//    }
   }
 
   DirectedPoint GeometryParamPoly3::PosFromDist(double dist) const {
-    auto result = _rtree.GetNearestNeighbours(
-        Rtree::BPoint(static_cast<float>(dist))).front();
-
-    auto &val1 = result.second.first;
-    auto &val2 = result.second.second;
-    double rate = (val2.s - dist) / (val2.s - val1.s);
-    double u = rate * val1.u + (1.0 - rate) * val2.u;
-    double v = rate * val1.v + (1.0 - rate) * val2.v;
-    double t_u = (rate * val1.t_u + (1.0 - rate) * val2.t_u);
-    double t_v = (rate * val1.t_v + (1.0 - rate) * val2.t_v);
-    double tangent = atan2(t_v, t_u); // ?
-
-    geom::Vector2D pos = RotatebyAngle(_heading, u, v);
-    DirectedPoint p(_start_position, _heading + tangent);
-    p.location.x += pos.x;
-    p.location.y += pos.y;
-    return p;
+    throw std::logic_error("GeometryParamPoly3::PosFromDist not implemented!");
+//    auto result = _rtree.GetNearestNeighbours(
+//        Rtree::BPoint(static_cast<float>(dist))).front();
+//
+//    auto &val1 = result.second.first;
+//    auto &val2 = result.second.second;
+//    double rate = (val2.s - dist) / (val2.s - val1.s);
+//    double u = rate * val1.u + (1.0 - rate) * val2.u;
+//    double v = rate * val1.v + (1.0 - rate) * val2.v;
+//    double t_u = (rate * val1.t_u + (1.0 - rate) * val2.t_u);
+//    double t_v = (rate * val1.t_v + (1.0 - rate) * val2.t_v);
+//    double tangent = atan2(t_v, t_u); // ?
+//
+//    geom::Vector2D pos = RotatebyAngle(_heading, u, v);
+//    DirectedPoint p(_start_position, _heading + tangent);
+//    p.location.x += pos.x;
+//    p.location.y += pos.y;
+//    return p;
   }
   std::pair<float, float> GeometryParamPoly3::DistanceTo(const geom::Location &) const {
     // No analytical expression (Newton-Raphson?/point search)
@@ -441,55 +444,56 @@ namespace element {
   }
 
   void GeometryParamPoly3::PreComputeSpline() {
-    // Roughly the interval size in m
-    constexpr double interval_size = 0.5;
-    size_t number_intervals =
-        std::max(static_cast<size_t>(_length / interval_size), size_t(5));
-    double delta_p = 1.0 / number_intervals;
-    if (_arcLength) {
-        delta_p *= _length;
-    }
-    double param_p = 0;
-    double current_s = 0;
-    double last_u = _polyU.Evaluate(param_p);
-    double last_v = _polyV.Evaluate(param_p);
-    double last_s = 0;
-    RtreeValue last_val{
-        last_u,
-        last_v,
-        last_s,
-        _polyU.Tangent(param_p),
-        _polyV.Tangent(param_p) };
-    for(size_t i = 0; i < number_intervals; ++i) {
-      param_p += delta_p;
-      double current_u = _polyU.Evaluate(param_p);
-      double current_v = _polyV.Evaluate(param_p);
-      double du = current_u - last_u;
-      double dv = current_v - last_v;
-      double ds = sqrt(du * du + dv * dv);
-      current_s += ds;
-      double current_t_u = _polyU.Tangent(param_p);
-      double current_t_v = _polyV.Tangent(param_p);
-      RtreeValue current_val{
-          current_u,
-          current_v,
-          current_s,
-          current_t_u,
-          current_t_v };
-
-      Rtree::BPoint p1(static_cast<float>(last_s));
-      Rtree::BPoint p2(static_cast<float>(current_s));
-      _rtree.InsertElement(Rtree::BSegment(p1, p2), last_val, current_val);
-
-      last_u = current_u;
-      last_v = current_v;
-      last_s = current_s;
-      last_val = current_val;
-
-      if(current_s > _length){
-        break;
-      }
-    }
+    throw std::logic_error("GeometryParamPoly3::PreComputeSpline not implemented!");
+//    // Roughly the interval size in m
+//    constexpr double interval_size = 0.5;
+//    size_t number_intervals =
+//        std::max(static_cast<size_t>(_length / interval_size), size_t(5));
+//    double delta_p = 1.0 / number_intervals;
+//    if (_arcLength) {
+//        delta_p *= _length;
+//    }
+//    double param_p = 0;
+//    double current_s = 0;
+//    double last_u = _polyU.Evaluate(param_p);
+//    double last_v = _polyV.Evaluate(param_p);
+//    double last_s = 0;
+//    RtreeValue last_val{
+//        last_u,
+//        last_v,
+//        last_s,
+//        _polyU.Tangent(param_p),
+//        _polyV.Tangent(param_p) };
+//    for(size_t i = 0; i < number_intervals; ++i) {
+//      param_p += delta_p;
+//      double current_u = _polyU.Evaluate(param_p);
+//      double current_v = _polyV.Evaluate(param_p);
+//      double du = current_u - last_u;
+//      double dv = current_v - last_v;
+//      double ds = sqrt(du * du + dv * dv);
+//      current_s += ds;
+//      double current_t_u = _polyU.Tangent(param_p);
+//      double current_t_v = _polyV.Tangent(param_p);
+//      RtreeValue current_val{
+//          current_u,
+//          current_v,
+//          current_s,
+//          current_t_u,
+//          current_t_v };
+//
+//      Rtree::BPoint p1(static_cast<float>(last_s));
+//      Rtree::BPoint p2(static_cast<float>(current_s));
+//      _rtree.InsertElement(Rtree::BSegment(p1, p2), last_val, current_val);
+//
+//      last_u = current_u;
+//      last_v = current_v;
+//      last_s = current_s;
+//      last_val = current_val;
+//
+//      if(current_s > _length){
+//        break;
+//      }
+//    }
   }
 } // namespace element
 } // namespace road
