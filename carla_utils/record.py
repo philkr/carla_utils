@@ -1,14 +1,9 @@
-from .recording import record, scenario
-from argparse import ArgumentParser
-
-try:
-    from tqdm import tqdm
-except ImportError:
-    def tqdm(x, *args, **kwargs):
-        return x
+from .recording import Configuration, record, scenario
+from .util import tqdm
 
 
 def main():
+    from argparse import ArgumentParser
     import carla
 
     parser = ArgumentParser()
@@ -30,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     # Create the config
-    cfg = scenario.Configuration(*args.config)
+    cfg = Configuration.from_file(*args.config)
     for o in args.config_override:
         exec(o, {'config': cfg})
 
@@ -39,7 +34,7 @@ def main():
     client.set_timeout(args.timeout)
     traffic_manager = client.get_trafficmanager(args.tm_port)
 
-    with scenario.scenario(client, cfg, traffic_manager) as world:
+    with scenario.scenario(client, cfg.scenario, traffic_manager) as world:
         with record(client, args.output):
             try:
                 for it in tqdm(range(args.max_steps)):

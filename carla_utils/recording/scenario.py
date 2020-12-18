@@ -1,66 +1,35 @@
 from contextlib import contextmanager
+from .config import Configuration, Required, Settings
 import random
+from typing import List
 
-__all__ = ['scenario', 'Configuration']
+
+__all__ = ['scenario', 'ScenarioSettings']
 
 
-class Configuration:
-    class Agent:
-        filter = 'vehicle.*'
-        n = 0
-        cars_only = False
-        role_name = 'autopilot'
-        autopilot = True
-
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                assert hasattr(self, k), 'Unknown configuration "%s"' % k
-                setattr(self, k, v)
-
+@Configuration.register('scenario')
+class ScenarioSettings(Settings):
+    class Agent(Settings):
+        filter: str = 'vehicle.*'
+        n: int = 0
+        cars_only: bool = False
+        role_name: str = 'autopilot'
+        autopilot: bool = True
 
     # Agent settings
-    seed = None
-    agents = [
+    seed: int = None
+    agents: List[Agent] = [
         Agent(filter='vehicle.*', n=10, cars_only=True),
     ]
 
     # World settings
-    map = 'town03'
-    weather = None
+    map: str = 'town03'
+    weather: str = None
 
     # Simulator
     synchronous_mode = True
     no_rendering_mode = True
     fixed_delta_seconds = 0.1
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            assert hasattr(self, k), 'Unknown configuration "%s"' % k
-            setattr(self, k, v)
-
-    @classmethod
-    def from_file(cls, *fns):
-        from pathlib import Path
-        settings = {}
-        for fn in fns:
-            fn = Path(fn)
-            if fn.name.endswith('.json'):
-                import json
-                with open(fn, 'r') as f:
-                    settings.update(json.load(f))
-            elif fn.name.endswith('.yaml'):
-                import yaml
-                with open(fn, 'r') as f:
-                    settings.update(yaml.load(f))
-            else:
-                print('Unknown file extension for configuration "%s"' % fn.name)
-        return cls.from_json(settings)
-
-    @classmethod
-    def from_json(cls, o):
-        if 'agents' in o:
-            o['agents'] = [cls.Agent(**a) for a in o['agents']]
-        return cls(**o)
 
 
 def weather_presets():
@@ -70,7 +39,7 @@ def weather_presets():
 
 
 @contextmanager
-def scenario(client, config: Configuration, traffic_manager=None):
+def scenario(client, config: ScenarioSettings, traffic_manager=None):
     import carla
     try:
         # Load the map
@@ -222,6 +191,6 @@ def scenario(client, config: Configuration, traffic_manager=None):
 
         client.apply_batch([carla.command.DestroyActor(x) for x in actors])
 
-        config = world.get_settings()
-        config.synchronous_mode = False
-        world.apply_settings(config)
+        ws = world.get_settings()
+        ws.synchronous_mode = False
+        world.apply_settings(ws)

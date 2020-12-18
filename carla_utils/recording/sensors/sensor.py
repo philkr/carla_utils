@@ -1,5 +1,21 @@
 from threading import Lock
-from carla import Location, Rotation, Transform
+from carla_utils.recording.config import Configuration, Required, Settings
+
+
+@Configuration.register('sensor', repeated=True)
+class SensorSettings(Settings):
+    class Transform(Settings):
+        pass
+
+    # Sensor settings
+    name: str = Required
+    type: str = Required
+    output_format: str = None
+    target_actor: int = None
+    transform: Transform = None
+    attribute: dict = {}
+
+
 
 
 def location_from_json(data):

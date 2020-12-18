@@ -1,3 +1,5 @@
+from .agent_property import AgentProperty
+from .config import Configuration
 from .parse import parse, Actor, Frame
 from .record import record
-from .agent_property import AgentProperty
+from .replay import replay

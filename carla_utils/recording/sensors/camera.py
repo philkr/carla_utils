@@ -1,7 +1,7 @@
 import numpy as np
 import imageio
 
-from .base import Sensor, transform_from_json
+from .sensor import Sensor, transform_from_json
 
 
 class Camera(Sensor):

@@ -1,32 +1,33 @@
----
-name: "front"
-sensor: "sensor.camera.rgb"
-attributes:
-    image_size_x: 256
-    image_size_y: 256
+- sensor:
+    name: "front"
+    type: "sensor.camera.rgb"
+    width: 256
+    height: 256
     fov: 90
-transform:
-    x: 5.5
-    z: 2.5
----
-name: "left"
-sensor: "sensor.camera.rgb"
-attributes:
-    image_size_x: 256
-    image_size_y: 256
-    fov: 90
-transform:
-    x: 5.5
-    z: 2.5
-    yaw: -45.0
----
-name: "right"
-sensor: "sensor.camera.rgb"
-attributes:
-    image_size_x: 256
-    image_size_y: 256
-    fov: 90
-transform:
-    x: 5.5
-    z: 2.5
-    yaw: 45.0
+    transform:
+        x: 5.5
+        z: 2.5
+
+- sensor:
+    name: "left"
+    type: "sensor.camera.rgb"
+    attribute:
+        width: 256
+        height: 256
+        fov: 90
+    transform:
+        x: 5.5
+        z: 2.5
+        yaw: -45.0
+
+- sensor:
+    name: "right"
+    type: "sensor.camera.rgb"
+    attribute:
+        width: 256
+        height: 256
+        fov: 90
+    transform:
+        x: 5.5
+        z: 2.5
+        yaw: 45.0
