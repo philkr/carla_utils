@@ -7,4 +7,4 @@ sensor:
         image_size_y: 256
         fov: 90
     transform:
-        location: [5.5, 0. 2.5]
+        location: [5.5, 0., 2.5]

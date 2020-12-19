@@ -4,8 +4,9 @@ from .parse import parse
 
 class MaxTickWorld:
     def __init__(self, world, max_tick):
+        # need to use dict or this will get stuck in recursion.
+        self.__dict__['world'] = world
         self.max_tick = max_tick
-        self.world = world
 
     def tick(self, *args, **kwargs):
         if self.max_tick > 0:
@@ -40,7 +41,7 @@ def replay(client, recording: str, fps: int = 10):
         world.apply_settings(settings)
 
         # Load the replay
-        client.replay_file(recording, 0.0, n_ticks / fps, 0)
+        print(client.replay_file(recording, 0.0, n_ticks / fps, 0))
 
         # Tick once to start the recording.
         world.tick()

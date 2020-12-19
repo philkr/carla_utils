@@ -1,7 +1,7 @@
 import pathlib
 
 from .util import tqdm
-from .recording import Configuration, replay
+from .recording import Configuration, replay, sensors
 
 
 def main():
@@ -15,7 +15,8 @@ def main():
 
     # Recording setting
     parser.add_argument('-s', '--max_steps', type=int, default=100000)
-    parser.add_argument('recording')
+    parser.add_argument('recording', type=lambda x: str(pathlib.Path(x).resolve()))
+    parser.add_argument('output_path')
     args = parser.parse_args()
 
     # Create the config
@@ -26,13 +27,12 @@ def main():
 
     # Start recording the scenario
     with replay(client, args.recording) as world:
-        # TODO: Add sensors
-        try:
-            n_tick = min(args.max_steps, world.max_tick)
-            for _ in tqdm(range(n_tick)):
-                world.tick()
-        except KeyboardInterrupt:
-            pass
+        with sensors(world, cfg.render, cfg.sensor, args.output_path):
+            try:
+                for _ in tqdm(range(min(args.max_steps, world.max_tick))):
+                    world.tick()
+            except KeyboardInterrupt:
+                pass
 
 
 if __name__ == "__main__":

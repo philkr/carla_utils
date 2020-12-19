@@ -20,14 +20,14 @@ def weather_presets():
 @Configuration.register('sensor', repeated=True)
 class SensorSettings(Settings):
     class Transform(Settings):
-        location: np.array  # x, y, z
+        location: np.float32  # x, y, z
         roll: float = 0
         pitch: float = 0
         yaw: float = 0
 
         def to_carla(self):
             import carla
-            location = carla.Location(*self.location)
+            location = carla.Location(*map(float, self.location))
             rotation = carla.Rotation(pitch=self.pitch, yaw=self.yaw, roll=self.roll)
             return carla.Transform(location, rotation)
 
@@ -74,7 +74,8 @@ class Sensor(SensorRegistry):
 
         # Find the target actor if needed and spawn a new actor
         if settings.target_actor is not None:
-            target_actor = world.get_actor(self.target_actor)
+            target_actor = world.get_actor(settings.target_actor)
+            assert target_actor is not None, 'Invalid target_actor {:d}'.format(settings.target_actor)
             self.actor = world.spawn_actor(blueprint, transform, target_actor)
         else:
             self.actor = world.spawn_actor(blueprint, transform)
@@ -85,7 +86,7 @@ class Sensor(SensorRegistry):
         pass
 
     def cleanup(self):
-        if self.actor is not None:
+        if hasattr(self, 'actor') and self.actor is not None:
             self.actor.destroy()
             self.actor = None
 

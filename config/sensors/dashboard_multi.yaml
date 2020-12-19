@@ -1,3 +1,6 @@
+---
+render:
+    weather: 'none'
 #include "dashboard.yaml"
 ---
 sensor:
@@ -8,7 +11,7 @@ sensor:
         image_size_y: 256
         fov: 90
     transform:
-        location: [ 5.5, 0. 2.5 ]
+        location: [ 5.5, 0., 2.5 ]
         yaw: -45.0
 
 ---
@@ -20,5 +23,5 @@ sensor:
         image_size_y: 256
         fov: 90
     transform:
-        location: [ 5.5, 0. 2.5 ]
+        location: [ 5.5, 0., 2.5 ]
         yaw: 45.0

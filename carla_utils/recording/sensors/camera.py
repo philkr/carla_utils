@@ -20,8 +20,8 @@ class TickingImageWriter:
         self.tick += 1
 
 
-VIDEO_FORMATS = {'mov', 'avi', 'mpg', 'mpeg', 'mp4', 'mkv', 'wmv'}
 IMAGE_FORMATS = {'jpg', 'png', 'webp', 'bmp'}
+VIDEO_FORMATS = {'mov', 'avi', 'mpg', 'mpeg', 'mp4', 'mkv', 'wmv'}
 
 
 @Sensor.register
@@ -31,6 +31,7 @@ class RGBCamera(Sensor):
     def __init__(self, world, settings: SensorSettings, output_path: Path):
         super().__init__(world, settings, output_path)
         import imageio
+        self.writer = None
         if settings.output_format in IMAGE_FORMATS:
             output_file = str(output_path) + settings.name + '_{:06d}.' + settings.output_format
             self.writer = TickingImageWriter(output_file, **settings.output_attributes)
@@ -47,4 +48,5 @@ class RGBCamera(Sensor):
         array = array[..., ::-1]
 
         # TODO: Push this off to ray at some point if it's faster
-        self.writer.append_data(array)
+        if self.writer is not None:
+            self.writer.append_data(array)
