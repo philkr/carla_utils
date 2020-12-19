@@ -1,6 +1,2 @@
-from .camera import Camera
-
-
-BLUEPRINT_TO_SENSOR = {
-        'sensor.camera.rgb': Camera
-        }
+from .sensor import sensors, Sensor, SensorSettings
+from .camera import RGBCamera

@@ -7,7 +7,6 @@ scenario:
       autopilot: True
       role_name: "autopilot"
 
-  weather: None
   synchronous_mode: True
   no_rendering_mode: True
   fixed_delta_seconds: 0.1

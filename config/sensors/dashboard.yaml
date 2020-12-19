@@ -1,10 +1,10 @@
-- sensor:
+---
+sensor:
     name: "front"
-    type: "sensor.camera.rgb"
-    attribute:
-        width: 256
-        height: 256
+    type: "RGBCamera"
+    attributes:
+        image_size_x: 256
+        image_size_y: 256
         fov: 90
     transform:
-        x: 5.5
-        z: 2.5
+        location: [5.5, 0. 2.5]

@@ -24,18 +24,11 @@ class ScenarioSettings(Settings):
 
     # World settings
     map: str = 'town03'
-    weather: str = None
 
     # Simulator
     synchronous_mode = True
     no_rendering_mode = True
     fixed_delta_seconds = 0.1
-
-
-def weather_presets():
-    import carla
-    import re
-    return [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
 
 
 @contextmanager
@@ -57,13 +50,6 @@ def scenario(client, config: ScenarioSettings, traffic_manager=None):
 
         # Init the random seed
         rnd = random.Random(config.seed)
-
-        # World settings
-        if config.weather is None or str(config.weather).lower() == 'none':
-            world.set_weather(getattr(carla.WeatherParameters, rnd.choice(weather_presets())))
-        else:
-            assert hasattr(carla.WeatherParameters, config.weather), 'Invalid weather "{}"'.format(config.weather)
-            world.set_weather(getattr(carla.WeatherParameters, config.weather))
 
         # Get the spawn points
         spawn_points = world.get_map().get_spawn_points()

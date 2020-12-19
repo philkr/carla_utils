@@ -1,33 +1,50 @@
+from .sensor import Sensor, SensorSettings
+from pathlib import Path
 import numpy as np
-import imageio
-
-from .sensor import Sensor, transform_from_json
 
 
-class Camera(Sensor):
+class TickingImageWriter:
+    def __init__(self, path_pattern: str, **kwargs):
+        self.tick = 0
+        self.path_pattern = path_pattern
+        self.kwargs = kwargs
+
+    def close(self):
+        pass
+
+    def append_data(self, data, meta={}):
+        import imageio
+        writer = imageio.get_writer(self.path_pattern.format(self.tick), **self.kwargs)
+        writer.append_data(data)
+        writer.close()
+        self.tick += 1
+
+
+VIDEO_FORMATS = {'mov', 'avi', 'mpg', 'mpeg', 'mp4', 'mkv', 'wmv'}
+IMAGE_FORMATS = {'jpg', 'png', 'webp', 'bmp'}
+
+
+@Sensor.register
+class RGBCamera(Sensor):
     blueprint = 'sensor.camera.rgb'
 
-    def __init__(self, *args, save_dir=None, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, world, settings: SensorSettings, output_path: Path):
+        super().__init__(world, settings, output_path)
+        import imageio
+        if settings.output_format in IMAGE_FORMATS:
+            output_file = str(output_path) + settings.name + '_{:06d}.' + settings.output_format
+            self.writer = TickingImageWriter(output_file, **settings.output_attributes)
+        elif settings.output_format in VIDEO_FORMATS:
+            output_file = str(output_path) + settings.name + '.' + settings.output_format
+            self.writer = imageio.get_writer(output_file, **settings.output_attributes)
 
-        self.save_dir = save_dir
+    def callback(self, sensor_data):
+        super().callback(sensor_data)
 
-    @classmethod
-    def from_json(cls, name, config, save_dir=None):
-        attributes = config['attributes']
-        transform = transform_from_json(config['transform'])
-
-        return cls(name, attributes, transform, save_dir=save_dir)
-
-    def _locked_callback(self, sensor_data):
         array = np.frombuffer(sensor_data.raw_data, dtype=np.uint8)
         array = np.reshape(array, (sensor_data.height, sensor_data.width, 4))
         array = array[..., :3]
         array = array[..., ::-1]
 
-        # jpg is 10x faster to save than png...
-        writer = imageio.get_writer(self.save_dir / ('%d.jpg' % self.ticks))
-        writer.append_data(array)
-        writer.close()
-
-        super()._locked_callback(sensor_data)
+        # TODO: Push this off to ray at some point if it's faster
+        self.writer.append_data(array)

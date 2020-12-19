@@ -1,84 +1,124 @@
-from threading import Lock
 from carla_utils.recording.config import Configuration, Required, Settings
+from contextlib import contextmanager
+import numpy as np
+from pathlib import Path
+from typing import List
+import random
+
+
+@Configuration.register('render')
+class RenderSettings(Settings):
+    weather: str = None
+
+
+def weather_presets():
+    import carla
+    import re
+    return [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
 
 
 @Configuration.register('sensor', repeated=True)
 class SensorSettings(Settings):
     class Transform(Settings):
-        pass
+        location: np.array  # x, y, z
+        roll: float = 0
+        pitch: float = 0
+        yaw: float = 0
+
+        def to_carla(self):
+            import carla
+            location = carla.Location(*self.location)
+            rotation = carla.Rotation(pitch=self.pitch, yaw=self.yaw, roll=self.roll)
+            return carla.Transform(location, rotation)
 
     # Sensor settings
     name: str = Required
     type: str = Required
     output_format: str = None
+    output_attributes: dict = {}
+
+    # Carla sensor settings
     target_actor: int = None
     transform: Transform = None
-    attribute: dict = {}
+    attributes: dict = {}
 
 
+class SensorRegistry:
+    _all = {}
+
+    @staticmethod
+    def register(cls):
+        assert hasattr(cls, 'blueprint') and cls.blueprint is not None,\
+            'Blueprint not defined for {!r}'.format(cls.__name__)
+        # Note to future self: I decided to keep indexing by name here to allow multiple sensors with the same blueprint
+        SensorRegistry._all[cls.__name__] = cls
+        return cls
+
+    @staticmethod
+    def find(name):
+        return SensorRegistry._all[name] if name in SensorRegistry._all else None
 
 
-def location_from_json(data):
-    location_keys = {'x', 'y', 'z'}
-    location_dict = {k: data.get(k) for k in location_keys & data.keys()}
-
-    return Location(**location_dict)
-
-
-def rotation_from_json(data):
-    rotation_keys = {'pitch', 'roll', 'yaw'}
-    rotation_dict = {k: data.get(k) for k in rotation_keys & data.keys()}
-
-    return Rotation(**rotation_dict)
-
-
-def transform_from_json(data):
-    location = location_from_json(data)
-    rotation = rotation_from_json(data)
-
-    return Transform(location, rotation)
-
-
-class Sensor(object):
+class Sensor(SensorRegistry):
     blueprint = None
 
-    def __init__(self, name, attributes, transform):
-        self.name = name
-        self.attributes = attributes
-        self.transform = transform
-        self.target_id = 0
-
-        self.lock = Lock()
-        self.ticks = 0
-        self.frame_number = -1
-
-    def override(self, override_dict):
-        self.target_id = override_dict.get('target_id', self.target_id)
-
-    def get_frame_number(self):
-        return self.frame_number
-
-    def make_blueprint(self, world):
+    def __init__(self, world, settings: SensorSettings, output_path: Path):
+        # Create the blueprint
         blueprint = world.get_blueprint_library().find(self.blueprint)
-        for key, val in self.attributes.items():
+        assert blueprint is not None, 'Sensor blueprint {!r} not found'.format(self.blueprint)
+        for key, val in settings.attributes.items():
             blueprint.set_attribute(key, str(val))
-        return blueprint
 
-    def hook(self, world, job_queue):
-        blueprint = self.make_blueprint(world)
-        target_actor = world.get_actor(self.target_id)
+        # Create the transform
+        transform = settings.transform.to_carla()
 
-        actor = world.spawn_actor(blueprint, self.transform, target_actor)
-        actor.listen(lambda x: self.callback(x, job_queue))
+        # Find the target actor if needed and spawn a new actor
+        if settings.target_actor is not None:
+            target_actor = world.get_actor(self.target_actor)
+            self.actor = world.spawn_actor(blueprint, transform, target_actor)
+        else:
+            self.actor = world.spawn_actor(blueprint, transform)
+        # and setup the callback
+        self.actor.listen(self.callback)
 
-        return actor
+    def callback(self, x):
+        pass
 
-    def callback(self, sensor_data, job_queue):
-        with self.lock:
-            self._locked_callback(sensor_data)
+    def cleanup(self):
+        if self.actor is not None:
+            self.actor.destroy()
+            self.actor = None
 
-        job_queue.put((self.name, sensor_data.frame_number))
+    def __del__(self):
+        self.cleanup()
 
-    def _locked_callback(self, sensor_data):
-        self.ticks += 1
-        self.frame_number = max(self.frame_number, sensor_data.frame_number)
+
+@contextmanager
+def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSettings], output_path: Path):
+    import carla
+    # Render settings
+    if render_config.weather is None or str(render_config.weather).lower() == 'none':
+        world.set_weather(getattr(carla.WeatherParameters, random.choice(weather_presets())))
+    else:
+        assert hasattr(carla.WeatherParameters, render_config.weather),\
+            'Invalid weather "{}"'.format(render_config.weather)
+        world.set_weather(getattr(carla.WeatherParameters, render_config.weather))
+
+    # Render things as long as we have sensors
+    settings = world.get_settings()
+    settings.no_rendering_mode = len(sensor_config) < 1
+    world.apply_settings(settings)
+
+    # Setup all sensors
+    sensors = []
+    for c in sensor_config:
+        S = Sensor.find(c.type)
+        assert S is not None, 'No sensor of type {!r} found!'.format(c.type)
+        sensors.append(S(world, c, output_path))
+
+    # leave the context manager
+    yield sensors
+
+    # Cleanup
+    for s in sensors:
+        s.cleanup()
