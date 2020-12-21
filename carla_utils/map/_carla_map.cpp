@@ -1,13 +1,3 @@
-/*
-<%
-setup_pybind11(cfg)
-from pathlib import Path
-cfg['sources'] = [str(s) for s in Path(filepath).parent.rglob("*.cpp") if s.name != '_map.cpp' and s.name[0] != '.']
-cfg['compiler_args'] = ['-std=c++17', '-O2']
-cfg['parallel'] = True
-%>
-*/
-
 // Copyright (c) 2017 Computer Vision Center (CVC) at the Universitat Autonoma
 // de Barcelona (UAB).
 //
@@ -78,7 +68,7 @@ std::array<std::array<T, N>, M> to_matrix(const std::array<T, N*M> & v) {
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<carla::client::Waypoint> >);
 
-PYBIND11_MODULE(_map, m) {
+PYBIND11_MODULE(_carla_map, m) {
   namespace cc = carla::client;
   namespace cr = carla::road;
   namespace cg = carla::geom;

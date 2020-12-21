@@ -235,10 +235,10 @@ def parse(filename):
 
             elif pid == 250:  # Our custom map encoding
                 # Otherwise just compile the carla map code
-                from .. import map
+                from _carla_map import Map
                 from zlib import decompress
                 map_name = r_packet.string()
                 map_data = decompress(r_packet.read())
-                world_map = map.Map(map_name, map_data)
+                world_map = Map(map_name, map_data)
 
     return world_map, frames
