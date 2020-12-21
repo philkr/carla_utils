@@ -1,7 +1,7 @@
-from contextlib import contextmanager
-from .config import Configuration, Required, Settings
 import random
+from contextlib import contextmanager
 from typing import List
+from .config import Configuration, Required, Settings
 
 
 __all__ = ['scenario', 'ScenarioSettings']

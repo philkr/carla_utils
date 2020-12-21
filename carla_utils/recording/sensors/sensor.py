@@ -1,9 +1,9 @@
-from carla_utils.recording.config import Configuration, Required, Settings
+import random
+
 from contextlib import contextmanager
-import numpy as np
 from pathlib import Path
 from typing import List
-import random
+from carla_utils.recording.config import Configuration, Required, Settings
 
 
 @Configuration.register('render')
@@ -20,14 +20,14 @@ def weather_presets():
 @Configuration.register('sensor', repeated=True)
 class SensorSettings(Settings):
     class Transform(Settings):
-        location: np.float32  # x, y, z
+        location: List[float]  # x, y, z
         roll: float = 0
         pitch: float = 0
         yaw: float = 0
 
         def to_carla(self):
             import carla
-            location = carla.Location(*map(float, self.location))
+            location = carla.Location(*self.location)
             rotation = carla.Rotation(pitch=self.pitch, yaw=self.yaw, roll=self.roll)
             return carla.Transform(location, rotation)
 
