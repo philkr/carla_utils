@@ -17,13 +17,13 @@
 #include "carla/road/element/RoadInfoMarkRecord.h"
 #include "carla/road/element/RoadInfoSignal.h"
 
+#include <chrono>
 #include <vector>
 #include <unordered_map>
 #include <stdexcept>
 
 namespace carla {
 namespace road {
-
   using namespace carla::road::element;
 
   /// We use this epsilon to shift the waypoints away from the edges of the lane
@@ -149,11 +149,48 @@ namespace road {
     return section.ContainsLane(waypoint.lane_id);
   }
 
+  Map::Map(MapData m) : _data(std::move(m)) {
+    using namespace std::chrono;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    CreateRtree();
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    CreateKDtree();
+    high_resolution_clock::time_point t3 = high_resolution_clock::now();
+    printf("Map::Map Create %fs  %fs\n", duration_cast<duration<double>>(t2 - t1).count(), duration_cast<duration<double>>(t3 - t2).count());
+  }
   // ===========================================================================
   // -- Map: Geometry ----------------------------------------------------------
   // ===========================================================================
 
-  std::optional<Waypoint> Map::GetClosestWaypointOnRoad(
+  std::optional<Waypoint> Map::GetClosestWaypointOnRoad_new(
+      const geom::Location &pos,
+      uint32_t lane_type) const {
+    // Find the closest point on the lane
+    std::vector<Waypoint> query_result =
+        _kdtree->GetNearestNeighboursWithFilter(pos,
+        [&](const Waypoint & w, float dist) {
+          const Lane &lane = GetLane(w);
+          return (lane_type & static_cast<uint32_t>(lane.GetType())) > 0;
+        });
+
+    if (query_result.size() == 0) {
+      return std::optional<Waypoint>{};
+    }
+    // Find the closest points two neighbors
+    Waypoint x0 = query_result[0], x1 = query_result[0];
+    const auto & lane = GetLane(query_result[0]);
+    x0.s = std::max(x0.s-1, lane.GetDistance());
+    x1.s = std::min(x1.s+1, lane.GetDistance() + lane.GetLength() - EPSILON);
+    geom::Vector3D l0 = ComputeTransform(x0).location, l1 = ComputeTransform(x1).location;
+
+    // Compute the segment distance to refine s
+    auto dst = geom::Math::DistanceSegmentToPoint(pos, l0, l1).first;
+    // Update the waypoint location
+    x0.s = std::max(lane.GetDistance(), std::min(x0.s + dst, lane.GetDistance() + lane.GetLength() - EPSILON));
+    return x0;
+  }
+
+  std::optional<Waypoint> Map::GetClosestWaypointOnRoad_old(
       const geom::Location &pos,
       uint32_t lane_type) const {
     std::vector<Rtree::TreeElement> query_result =
@@ -176,7 +213,6 @@ namespace road {
 
     Waypoint result_start = query_result.front().second.first;
     Waypoint result_end = query_result.front().second.second;
-
     if (result_start.lane_id < 0) {
       double delta_s = distance_to_segment.first;
       double final_s = result_start.s + delta_s;
@@ -198,6 +234,31 @@ namespace road {
         return GetNext(result_start, delta_s).front();
       }
     }
+  }
+  std::optional<Waypoint> Map::GetClosestWaypointOnRoad(
+      const geom::Location &pos,
+      uint32_t lane_type) const {
+    using namespace std::chrono;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+    std::optional<Waypoint> old_r = GetClosestWaypointOnRoad_old(pos, lane_type);
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    std::optional<Waypoint> new_r = GetClosestWaypointOnRoad_new(pos, lane_type);
+    high_resolution_clock::time_point t3 = high_resolution_clock::now();
+    if (old_r) {
+      printf("O  %d %d %f\n", old_r->road_id, old_r->lane_id, old_r->s);
+      auto l = ComputeTransform(old_r.value()).location;
+      printf("  %f %f %f\n", l.x, l.y, l.z);
+    }
+    if (new_r) {
+      printf("N  %d %d %f\n", new_r->road_id, new_r->lane_id, new_r->s);
+      auto l = ComputeTransform(new_r.value()).location;
+      printf("  %f %f %f\n", l.x, l.y, l.z);
+    }
+
+
+    printf("Map::GetClosestWaypointOnRoad %fs  %fs\n", duration_cast<duration<double>>(t2 - t1).count(), duration_cast<duration<double>>(t3 - t2).count());
+
+    return old_r;
   }
 
   std::optional<Waypoint> Map::GetWaypoint(
@@ -691,77 +752,6 @@ namespace road {
     return result;
   }
 
-  std::unordered_map<road::RoadId, std::unordered_set<road::RoadId>>
-      Map::ComputeJunctionConflicts(JuncId id) const {
-
-    const float epsilon = 0.0001f; // small delta in the road (set to 0.1
-                                     // millimeters to prevent numeric errors)
-    const Junction *junction = GetJunction(id);
-    std::unordered_map<road::RoadId, std::unordered_set<road::RoadId>>
-        conflicts;
-
-    // 2d typedefs
-    typedef boost::geometry::model::point
-        <float, 2, boost::geometry::cs::cartesian> Point2d;
-    typedef boost::geometry::model::segment<Point2d> Segment2d;
-    typedef boost::geometry::model::box<Rtree::BPoint> Box;
-
-    // box range
-    auto bbox_pos = junction->GetBoundingBox().location;
-    auto bbox_ext = junction->GetBoundingBox().extent;
-    auto min_corner = geom::Vector3D(
-        bbox_pos.x - bbox_ext.x,
-        bbox_pos.y - bbox_ext.y,
-        bbox_pos.z - bbox_ext.z - epsilon);
-    auto max_corner = geom::Vector3D(
-        bbox_pos.x + bbox_ext.x,
-        bbox_pos.y + bbox_ext.y,
-        bbox_pos.z + bbox_ext.z + epsilon);
-    Box box({min_corner.x, min_corner.y, min_corner.z},
-        {max_corner.x, max_corner.y, max_corner.z});
-    auto segments = _rtree.GetIntersections(box);
-
-    for (size_t i = 0; i < segments.size(); ++i){
-      auto &segment1 = segments[i];
-      auto waypoint1 = segment1.second.first;
-      JuncId junc_id1 = _data.GetRoad(waypoint1.road_id).GetJunctionId();
-      // only segments in the junction
-      if(junc_id1 != id){
-        continue;
-      }
-      Segment2d seg1{{segment1.first.first.get<0>(), segment1.first.first.get<1>()},
-          {segment1.first.second.get<0>(), segment1.first.second.get<1>()}};
-      for (size_t j = i + 1; j < segments.size(); ++j){
-        auto &segment2 = segments[j];
-        auto waypoint2 = segment2.second.first;
-        JuncId junc_id2 = _data.GetRoad(waypoint2.road_id).GetJunctionId();
-        // only segments in the junction
-        if(junc_id2 != id){
-          continue;
-        }
-        // discard same road
-        if(waypoint1.road_id == waypoint2.road_id){
-          continue;
-        }
-        Segment2d seg2{{segment2.first.first.get<0>(), segment2.first.first.get<1>()},
-            {segment2.first.second.get<0>(), segment2.first.second.get<1>()}};
-
-        double distance = boost::geometry::distance(seg1, seg2);
-        // better to set distance to lanewidth
-        if(distance > 2.0){
-          continue;
-        }
-        if(conflicts[waypoint1.road_id].count(waypoint2.road_id) == 0){
-          conflicts[waypoint1.road_id].insert(waypoint2.road_id);
-        }
-        if(conflicts[waypoint2.road_id].count(waypoint1.road_id) == 0){
-          conflicts[waypoint2.road_id].insert(waypoint1.road_id);
-        }
-      }
-    }
-    return conflicts;
-  }
-
   const Lane &Map::GetLane(Waypoint waypoint) const {
     return _data.GetRoad(waypoint.road_id).GetLaneById(waypoint.section_id, waypoint.lane_id);
   }
@@ -1099,6 +1089,40 @@ namespace road {
     out_mesh.EndMaterial();
     return out_mesh;
   }
+
+  // ===========================================================================
+  // -- Map: Private functions -------------------------------------------------
+  // ===========================================================================
+
+  void Map::CreateKDtree() {
+    const double min_delta_s = 1;    // segments of minimum 1m through the road
+
+    // Generate waypoints at start of every lane
+    std::vector<Waypoint> topology;
+    for (const auto &pair : _data.GetRoads()) {
+      const auto &road = pair.second;
+      ForEachLane(road, Lane::LaneType::Any, [&](auto &&waypoint) {
+        if(waypoint.lane_id != 0) {
+          topology.push_back(waypoint);
+        }
+      });
+    }
+
+    // Loop through all lanes
+    _kdtree = std::make_unique<KDtree>();
+    for (auto &waypoint : topology) {
+      const Lane &lane = GetLane(waypoint);
+      auto current_waypoint = waypoint;
+      for(double s=0; s<lane.GetLength()+min_delta_s-EPSILON; s+=min_delta_s) {
+        current_waypoint.s = lane.GetDistance()+std::min<double>(s, lane.GetLength()-EPSILON);
+        geom::Transform t = lane.ComputeTransform(current_waypoint.s);
+        _kdtree->insert(t.location, current_waypoint);
+      }
+    }
+    // Add segments to Rtree
+    _kdtree->build();
+  }
+
 
 } // namespace road
 } // namespace carla

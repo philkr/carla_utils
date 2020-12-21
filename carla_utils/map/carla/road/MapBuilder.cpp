@@ -63,7 +63,6 @@ namespace road {
     // or move it (will return move -> Map(Map &&))
     std::shared_ptr<Map> map = std::make_shared<Map>(std::move(_map_data));
     CreateJunctionBoundingBoxes(*map);
-    ComputeJunctionRoadConflicts(*map);
     CheckSignalsOnRoads(*map);
 
     return map;
@@ -891,13 +890,6 @@ void MapBuilder::CreateController(
       }
     }
 }
-
-  void MapBuilder::ComputeJunctionRoadConflicts(Map &map) {
-    for (auto &junctionpair : map._data.GetJunctions()) {
-      auto& junction = junctionpair.second;
-      junction._road_conflicts = (map.ComputeJunctionConflicts(junction.GetId()));
-    }
-  }
 
   void MapBuilder::GenerateDefaultValiditiesForSignalReferences() {
     for (auto * signal_reference : _temp_signal_reference_container) {
