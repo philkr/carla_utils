@@ -164,34 +164,43 @@ namespace road {
         [&](const Waypoint & w, float dist) {
           const Lane &lane = GetLane(w);
           return (lane_type & static_cast<uint32_t>(lane.GetType())) > 0;
-        });
+        }, 2);
 
     if (query_result.size() == 0) {
       return std::optional<Waypoint>{};
     }
     // Find the closest points two neighbors
     Waypoint q = query_result[0];
+    auto lq = ComputeTransform(q).location;
     const auto & lane = GetLane(q);
-    Waypoint a = q, b = q;
-    a.s = std::max(q.s-1, lane.GetDistance());
-    b.s = std::min(q.s+1, lane.GetDistance() + lane.GetLength() - EPSILON);
 
     // All that geometry makes my head hurt, let's just brute force it
-    auto lq = ComputeTransform(q).location;
-    auto la = ComputeTransform(a).location;
-    auto lb = ComputeTransform(b).location;
-    for(int i=0; i<5; i++) {
-      if ((pos-la).SquaredLength() > (pos-lb).SquaredLength()) {
-        a = q;
-        la = lq;
-      } else {
-        b = q;
-        lb = lq;
-      }
-      q.s = 0.5 * (a.s + b.s);
-      lq = ComputeTransform(q).location;
+    Waypoint a = q, b = q, tmp=q;
+    auto la = lq, lb = lq;
+    for (double s=q.s, dst=(pos-lq).SquaredLength(); s>=q.s-10; s-=0.1) {
+       tmp.s = std::max(s, lane.GetDistance());
+       auto ltmp = ComputeTransform(tmp).location;
+       if ((pos-ltmp).SquaredLength() <= dst) {
+         a = tmp;
+         la = ltmp;
+       }
+       else
+         break;
     }
-    return q;
+    for (double s=q.s, dst=(pos-lq).SquaredLength(); s<=q.s+10; s+=0.1) {
+       tmp.s = std::min(s, lane.GetDistance() + lane.GetLength() - EPSILON);
+       auto ltmp = ComputeTransform(tmp).location;
+       if ((pos-ltmp).SquaredLength() <= dst) {
+         b = tmp;
+         lb = ltmp;
+       }
+       else
+         break;
+    }
+    if ((pos-la).SquaredLength() < (pos-lb).SquaredLength())
+        return a;
+    return b;
+
   }
   std::optional<Waypoint> Map::GetWaypoint(
       const geom::Location &pos,

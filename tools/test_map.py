@@ -1,6 +1,7 @@
 # Compares carla and carla_utils map
 from contextlib import contextmanager
 import numpy as np
+import random
 
 from carla_utils import map as utils
 import carla
@@ -84,42 +85,35 @@ def main():
 
     # Generate some random test points for the get_waypoint query
     random_points = []
-    for noise_level in np.linspace(0, 10, 10000):
-        l = np.random.choice(list(wps.values())[0]).transform.location
-        l.x += noise_level * (np.random.random()-0.5)
-        l.y += noise_level * (np.random.random()-0.5)
-        l.z += noise_level * (np.random.random()-0.5)
+    for noise_level in np.linspace(0, 10, 1000000):
+        l = random.choice(list(wps.values())[0]).transform.location
+        l.x += noise_level * (random.random()-0.5)
+        l.y += noise_level * (random.random()-0.5)
+        l.z += noise_level * (random.random()-0.5)
         random_points.append(l)
 
+    print('# points', len(random_points))
     for project_to_road in [True, False]:
         print('project_to_road =', project_to_road)
         t.get_waypoint(random_points[0], project_to_road=project_to_road)
 
-        n_fail = 0
+        n_fail, n_win = 0, 0
         for p in random_points:
             r = t.get_waypoint(p, project_to_road=project_to_road, verbose=False)
+            if r['carla'] is None or r['utils'] is None:
+                continue
             dst = {k: np.sqrt((p.x-l.x)**2+(p.y-l.y)**2+(p.z-l.z)**2) for k, w in r.items() for l in [w.transform.location]}
-            if dst['carla'] + 0.2 < dst['utils']:
+            if dst['carla'] + 0.1 < dst['utils']:
                 if n_fail == 0:
                     print(dst)
                     compare_transform(*r.values())
                     print([(v.road_id, v.lane_id, v.s) for v in r.values()])
                 n_fail += 1
-        print("%fail = {}".format(100*n_fail / len(random_points)))
+            if dst['utils'] + 0.1 < dst['carla']:
+                n_win += 1
 
-
-    # with timeit('carla.Map'):
-    #     carla_map = carla.Map('test', xodr)
-    #
-    # with timeit('util.Map'):
-    #     utils_map = map.Map('test', xodr)
-    #
-    # with timeit('carla_map.generate_waypoints'):
-    #     carla_waypoints = carla_map.generate_waypoints(0.5)
-    #
-    # with timeit('utils_map.generate_waypoints'):
-    #     utils_waypoints = utils_map.generate_waypoints(0.5)
-
+        print("%fail = {}   {} / {}".format(100*n_fail / len(random_points), n_fail, len(random_points)))
+        print("%win  = {}   {} / {}".format(100*n_win / len(random_points), n_win, len(random_points)))
 
 
 if __name__ == "__main__":
