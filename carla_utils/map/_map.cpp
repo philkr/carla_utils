@@ -75,6 +75,8 @@ std::array<std::array<T, N>, M> to_matrix(const std::array<T, N*M> & v) {
   return py::str(self.attr("__class__").attr("__name__"))+py::str("(") + py::str(", ").attr("join")(args) + py::str(")");\
 }
 
+//PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<carla::client::Waypoint> >);
+
 PYBIND11_MODULE(_map, m) {
   namespace cc = carla::client;
   namespace cr = carla::road;

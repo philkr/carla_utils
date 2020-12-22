@@ -17,7 +17,6 @@
 #include "carla/road/element/RoadInfoMarkRecord.h"
 #include "carla/road/element/RoadInfoSignal.h"
 
-#include <chrono>
 #include <vector>
 #include <unordered_map>
 #include <stdexcept>
@@ -150,19 +149,13 @@ namespace road {
   }
 
   Map::Map(MapData m) : _data(std::move(m)) {
-    using namespace std::chrono;
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    CreateRtree();
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
     CreateKDtree();
-    high_resolution_clock::time_point t3 = high_resolution_clock::now();
-    printf("Map::Map Create %fs  %fs\n", duration_cast<duration<double>>(t2 - t1).count(), duration_cast<duration<double>>(t3 - t2).count());
   }
   // ===========================================================================
   // -- Map: Geometry ----------------------------------------------------------
   // ===========================================================================
 
-  std::optional<Waypoint> Map::GetClosestWaypointOnRoad_new(
+  std::optional<Waypoint> Map::GetClosestWaypointOnRoad(
       const geom::Location &pos,
       uint32_t lane_type) const {
     // Find the closest point on the lane
@@ -189,78 +182,6 @@ namespace road {
     x0.s = std::max(lane.GetDistance(), std::min(x0.s + dst, lane.GetDistance() + lane.GetLength() - EPSILON));
     return x0;
   }
-
-  std::optional<Waypoint> Map::GetClosestWaypointOnRoad_old(
-      const geom::Location &pos,
-      uint32_t lane_type) const {
-    std::vector<Rtree::TreeElement> query_result =
-        _rtree.GetNearestNeighboursWithFilter(Rtree::BPoint(pos.x, pos.y, pos.z),
-        [&](Rtree::TreeElement const &element) {
-          const Lane &lane = GetLane(element.second.first);
-          return (lane_type & static_cast<uint32_t>(lane.GetType())) > 0;
-        });
-
-    if (query_result.size() == 0) {
-      return std::optional<Waypoint>{};
-    }
-
-    Rtree::BSegment segment = query_result.front().first;
-    Rtree::BPoint s1 = segment.first;
-    Rtree::BPoint s2 = segment.second;
-    auto distance_to_segment = geom::Math::DistanceSegmentToPoint(pos,
-        geom::Vector3D(s1.get<0>(), s1.get<1>(), s1.get<2>()),
-        geom::Vector3D(s2.get<0>(), s2.get<1>(), s2.get<2>()));
-
-    Waypoint result_start = query_result.front().second.first;
-    Waypoint result_end = query_result.front().second.second;
-    if (result_start.lane_id < 0) {
-      double delta_s = distance_to_segment.first;
-      double final_s = result_start.s + delta_s;
-      if (final_s >= result_end.s) {
-        return result_end;
-      } else if (delta_s <= 0) {
-        return result_start;
-      } else {
-        return GetNext(result_start, delta_s).front();
-      }
-    } else {
-      double delta_s = distance_to_segment.first;
-      double final_s = result_start.s - delta_s;
-      if (final_s <= result_end.s) {
-        return result_end;
-      } else if (delta_s <= 0) {
-        return result_start;
-      } else {
-        return GetNext(result_start, delta_s).front();
-      }
-    }
-  }
-  std::optional<Waypoint> Map::GetClosestWaypointOnRoad(
-      const geom::Location &pos,
-      uint32_t lane_type) const {
-    using namespace std::chrono;
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    std::optional<Waypoint> old_r = GetClosestWaypointOnRoad_old(pos, lane_type);
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    std::optional<Waypoint> new_r = GetClosestWaypointOnRoad_new(pos, lane_type);
-    high_resolution_clock::time_point t3 = high_resolution_clock::now();
-    if (old_r) {
-      printf("O  %d %d %f\n", old_r->road_id, old_r->lane_id, old_r->s);
-      auto l = ComputeTransform(old_r.value()).location;
-      printf("  %f %f %f\n", l.x, l.y, l.z);
-    }
-    if (new_r) {
-      printf("N  %d %d %f\n", new_r->road_id, new_r->lane_id, new_r->s);
-      auto l = ComputeTransform(new_r.value()).location;
-      printf("  %f %f %f\n", l.x, l.y, l.z);
-    }
-
-
-    printf("Map::GetClosestWaypointOnRoad %fs  %fs\n", duration_cast<duration<double>>(t2 - t1).count(), duration_cast<duration<double>>(t3 - t2).count());
-
-    return old_r;
-  }
-
   std::optional<Waypoint> Map::GetWaypoint(
       const geom::Location &pos,
       uint32_t lane_type) const {
@@ -759,161 +680,6 @@ namespace road {
   // ===========================================================================
   // -- Map: Private functions -------------------------------------------------
   // ===========================================================================
-
-  // Adds a new element to the rtree element list using the position of the
-  // waypoints both ends of the segment
-  void Map::AddElementToRtree(
-      std::vector<Rtree::TreeElement> &rtree_elements,
-      geom::Transform &current_transform,
-      geom::Transform &next_transform,
-      Waypoint &current_waypoint,
-      Waypoint &next_waypoint) {
-    Rtree::BPoint init =
-        Rtree::BPoint(
-        current_transform.location.x,
-        current_transform.location.y,
-        current_transform.location.z);
-    Rtree::BPoint end =
-        Rtree::BPoint(
-        next_transform.location.x,
-        next_transform.location.y,
-        next_transform.location.z);
-    rtree_elements.emplace_back(std::make_pair(Rtree::BSegment(init, end),
-        std::make_pair(current_waypoint, next_waypoint)));
-  }
-  // Adds a new element to the rtree element list using the position of the
-  // waypoints, both ends of the segment
-  void Map::AddElementToRtreeAndUpdateTransforms(
-      std::vector<Rtree::TreeElement> &rtree_elements,
-      geom::Transform &current_transform,
-      Waypoint &current_waypoint,
-      Waypoint &next_waypoint) {
-    geom::Transform next_transform = ComputeTransform(next_waypoint);
-    AddElementToRtree(rtree_elements, current_transform, next_transform,
-    current_waypoint, next_waypoint);
-    current_waypoint = next_waypoint;
-    current_transform = next_transform;
-  }
-
-  // returns the remaining length of the geometry depending on the lane
-  // direction
-  double GetRemainingLength(const Lane &lane, double current_s) {
-    if (lane.GetId() < 0) {
-      return (lane.GetDistance() + lane.GetLength() - current_s);
-    } else {
-      return (current_s - lane.GetDistance());
-    }
-  }
-
-  void Map::CreateRtree() {
-    const double epsilon = 0.000001; // small delta in the road (set to 1
-                                     // micrometer to prevent numeric errors)
-    const double min_delta_s = 1;    // segments of minimum 1m through the road
-
-    // 1.8 degrees, maximum angle in a curve to place a segment
-    constexpr double angle_threshold = geom::Math::Pi<double>() / 100.0;
-    // maximum distance of a segment
-    constexpr double max_segment_length = 100.0;
-
-    // Generate waypoints at start of every lane
-    std::vector<Waypoint> topology;
-    for (const auto &pair : _data.GetRoads()) {
-      const auto &road = pair.second;
-      ForEachLane(road, Lane::LaneType::Any, [&](auto &&waypoint) {
-        if(waypoint.lane_id != 0) {
-          topology.push_back(waypoint);
-        }
-      });
-    }
-
-    // Container of segments and waypoints
-    std::vector<Rtree::TreeElement> rtree_elements;
-    // Loop through all lanes
-    for (auto &waypoint : topology) {
-      auto &lane_start_waypoint = waypoint;
-
-      auto current_waypoint = lane_start_waypoint;
-
-      const Lane &lane = GetLane(current_waypoint);
-
-      geom::Transform current_transform = ComputeTransform(current_waypoint);
-
-      // Save computation time in straight lines
-      if (lane.IsStraight()) {
-        double delta_s = min_delta_s;
-        double remaining_length =
-            GetRemainingLength(lane, current_waypoint.s);
-        remaining_length -= epsilon;
-        delta_s = remaining_length;
-        if (delta_s < epsilon) {
-          continue;
-        }
-        auto next = GetNext(current_waypoint, delta_s);
-
-        RELEASE_ASSERT(next.size() == 1);
-        RELEASE_ASSERT(next.front().road_id == current_waypoint.road_id);
-        auto next_waypoint = next.front();
-
-        AddElementToRtreeAndUpdateTransforms(
-            rtree_elements,
-            current_transform,
-            current_waypoint,
-            next_waypoint);
-        // end of lane
-      } else {
-        auto next_waypoint = current_waypoint;
-
-        // Loop until the end of the lane
-        // Advance in small s-increments
-        while (true) {
-          double delta_s = min_delta_s;
-          double remaining_length =
-              GetRemainingLength(lane, next_waypoint.s);
-          remaining_length -= epsilon;
-          delta_s = std::min(delta_s, remaining_length);
-
-          if (delta_s < epsilon) {
-            AddElementToRtreeAndUpdateTransforms(
-                rtree_elements,
-                current_transform,
-                current_waypoint,
-                next_waypoint);
-            break;
-          }
-
-          auto next = GetNext(next_waypoint, delta_s);
-          if (next.size() != 1 ||
-          current_waypoint.section_id != next.front().section_id) {
-            AddElementToRtreeAndUpdateTransforms(
-                rtree_elements,
-                current_transform,
-                current_waypoint,
-                next_waypoint);
-            break;
-          }
-
-          next_waypoint = next.front();
-          geom::Transform next_transform = ComputeTransform(next_waypoint);
-          double angle = geom::Math::GetVectorAngle(
-              current_transform.GetForwardVector(), next_transform.GetForwardVector());
-
-          if (std::abs(angle) > angle_threshold ||
-              std::abs(current_waypoint.s - next_waypoint.s) > max_segment_length) {
-            AddElementToRtree(
-                rtree_elements,
-                current_transform,
-                next_transform,
-                current_waypoint,
-                next_waypoint);
-            current_waypoint = next_waypoint;
-            current_transform = next_transform;
-          }
-        }
-      }
-    }
-    // Add segments to Rtree
-    _rtree.InsertElements(rtree_elements);
-  }
 
   Junction* Map::GetJunction(JuncId id) {
     return _data.GetJunction(id);
