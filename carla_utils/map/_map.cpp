@@ -17,6 +17,7 @@ cfg['parallel'] = True
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 //#include <carla/FileSystem.h>
 #include <carla/opendrive/OpenDriveParser.h>
 #include <carla/road/Junction.h>
@@ -75,7 +76,7 @@ std::array<std::array<T, N>, M> to_matrix(const std::array<T, N*M> & v) {
   return py::str(self.attr("__class__").attr("__name__"))+py::str("(") + py::str(", ").attr("join")(args) + py::str(")");\
 }
 
-//PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<carla::client::Waypoint> >);
+PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<carla::client::Waypoint> >);
 
 PYBIND11_MODULE(_map, m) {
   namespace cc = carla::client;
@@ -181,6 +182,9 @@ PYBIND11_MODULE(_map, m) {
     .def_readonly("width", &cre::LaneMarking::width)
     .def("__str__", _STR("type", "color", "lane_change", "width"))
   ;
+
+  // PyBind11 natively copies the vector here, which is expensive (and unnecessarily slow)
+  py::bind_vector<std::vector<std::shared_ptr<cc::Waypoint>>>(m, "VectorWaypoint");
 
   py::class_<cc::Waypoint,std::shared_ptr<cc::Waypoint>>(m, "Waypoint")
     .def_property_readonly("id", &cc::Waypoint::GetId)

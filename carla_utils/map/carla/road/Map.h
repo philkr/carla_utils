@@ -51,14 +51,6 @@ namespace road {
         const geom::Location &location,
         uint32_t lane_type = static_cast<uint32_t>(Lane::LaneType::Driving)) const;
 
-    std::optional<element::Waypoint> GetClosestWaypointOnRoad_new(
-        const geom::Location &location,
-        uint32_t lane_type = static_cast<uint32_t>(Lane::LaneType::Driving)) const;
-
-    std::optional<element::Waypoint> GetClosestWaypointOnRoad_old(
-        const geom::Location &location,
-        uint32_t lane_type = static_cast<uint32_t>(Lane::LaneType::Driving)) const;
-
     std::optional<element::Waypoint> GetWaypoint(
         const geom::Location &location,
         uint32_t lane_type = static_cast<uint32_t>(Lane::LaneType::Driving)) const;

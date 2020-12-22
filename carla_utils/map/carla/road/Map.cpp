@@ -170,17 +170,28 @@ namespace road {
       return std::optional<Waypoint>{};
     }
     // Find the closest points two neighbors
-    Waypoint x0 = query_result[0], x1 = query_result[0];
-    const auto & lane = GetLane(query_result[0]);
-    x0.s = std::max(x0.s-1, lane.GetDistance());
-    x1.s = std::min(x1.s+1, lane.GetDistance() + lane.GetLength() - EPSILON);
-    geom::Vector3D l0 = ComputeTransform(x0).location, l1 = ComputeTransform(x1).location;
+    Waypoint q = query_result[0];
+    const auto & lane = GetLane(q);
+    Waypoint a = q, b = q;
+    a.s = std::max(q.s-1, lane.GetDistance());
+    b.s = std::min(q.s+1, lane.GetDistance() + lane.GetLength() - EPSILON);
 
-    // Compute the segment distance to refine s
-    auto dst = geom::Math::DistanceSegmentToPoint(pos, l0, l1).first;
-    // Update the waypoint location
-    x0.s = std::max(lane.GetDistance(), std::min(x0.s + dst, lane.GetDistance() + lane.GetLength() - EPSILON));
-    return x0;
+    // All that geometry makes my head hurt, let's just brute force it
+    auto lq = ComputeTransform(q).location;
+    auto la = ComputeTransform(a).location;
+    auto lb = ComputeTransform(b).location;
+    for(int i=0; i<5; i++) {
+      if ((pos-la).SquaredLength() > (pos-lb).SquaredLength()) {
+        a = q;
+        la = lq;
+      } else {
+        b = q;
+        lb = lq;
+      }
+      q.s = 0.5 * (a.s + b.s);
+      lq = ComputeTransform(q).location;
+    }
+    return q;
   }
   std::optional<Waypoint> Map::GetWaypoint(
       const geom::Location &pos,
@@ -861,7 +872,7 @@ namespace road {
   // ===========================================================================
 
   void Map::CreateKDtree() {
-    const double min_delta_s = 1;    // segments of minimum 1m through the road
+    const double min_delta_s = 0.5;    // segments of minimum 1m through the road
 
     // Generate waypoints at start of every lane
     std::vector<Waypoint> topology;
