@@ -19,6 +19,7 @@ class LaneRenderer(RenderFunction):
     uniforms = dict(zorder=0, fill_color=color.white, border_size=0.5)
 
     def get_all_waypoints(self, world_map):
+        # Better to get waypoints of a certain lane?
         middle_marking = world_map.generate_waypoints(2)
         all_wps = []
         for waypoint in middle_marking:
@@ -42,6 +43,9 @@ class LaneRenderer(RenderFunction):
     def _update_geometry(self, world_map, frame):
         wps = self.get_all_waypoints(world_map)
         wps_iterator = cycle(wps)
+        # get (carla.LaneChange) [NONE, Both, Left, Right] and (carla.LaneType)
+
+
 
 
 lane = LaneRenderer()
