@@ -68,7 +68,7 @@ std::array<std::array<T, N>, M> to_matrix(const std::array<T, N*M> & v) {
 
 PYBIND11_MAKE_OPAQUE(std::vector<std::shared_ptr<carla::client::Waypoint> >);
 
-PYBIND11_MODULE(_carla_map, m) {
+PYBIND11_MODULE(map, m) {
   namespace cc = carla::client;
   namespace cr = carla::road;
   namespace cg = carla::geom;
