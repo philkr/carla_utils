@@ -235,7 +235,7 @@ def parse(filename):
 
             elif pid == 250:  # Our custom map encoding
                 # Otherwise just compile the carla map code
-                from _carla_map import Map
+                from carla_utils.map import Map
                 from zlib import decompress
                 map_name = r_packet.string()
                 map_data = decompress(r_packet.read())
