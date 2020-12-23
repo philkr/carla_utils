@@ -117,9 +117,10 @@ def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSett
         assert S is not None, 'No sensor of type {!r} found!'.format(c.type)
         sensors.append(S(world, c, output_path))
 
-    # leave the context manager
-    yield sensors
-
-    # Cleanup
-    for s in sensors:
-        s.cleanup()
+    try:
+        # leave the context manager
+        yield sensors
+    finally:
+        # cleanup
+        for s in sensors:
+            s.cleanup()

@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 
 from pathlib import Path
 from .sensor import Sensor, SensorSettings
@@ -39,6 +40,8 @@ class RGBCamera(Sensor):
         elif settings.output_format in VIDEO_FORMATS:
             output_file = str(output_path) + settings.name + '.' + settings.output_format
             self.writer = imageio.get_writer(output_file, **settings.output_attributes)
+        else:
+            logging.warn('Sensor "%s": output_format was not specified' % settings.name)
 
     def callback(self, sensor_data):
         super().callback(sensor_data)
