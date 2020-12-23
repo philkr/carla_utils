@@ -1,5 +1,7 @@
-from .recording import Configuration, record, scenario
+import pathlib
+
 from .util import tqdm
+from .recording import Configuration, replay, sensors
 
 
 def main():
@@ -13,7 +15,8 @@ def main():
 
     # Recording setting
     parser.add_argument('-s', '--max_steps', type=int, default=100000)
-    parser.add_argument('output')
+    parser.add_argument('recording', type=lambda x: str(pathlib.Path(x).resolve()))
+    parser.add_argument('output_path')
     args = parser.parse_args()
 
     # Create the config
@@ -23,11 +26,10 @@ def main():
     client, traffic_manager = client_from_args(args)
 
     # Start recording the scenario
-    with scenario.scenario(client, cfg.scenario, traffic_manager) as world:
-        with record(client, args.output):
-            # TODO: Add sensors?
+    with replay(client, args.recording) as world:
+        with sensors(world, cfg.render, cfg.sensor, args.output_path):
             try:
-                for it in tqdm(range(args.max_steps)):
+                for _ in tqdm(range(min(args.max_steps, world.max_tick))):
                     world.tick()
             except KeyboardInterrupt:
                 pass

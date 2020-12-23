@@ -1,5 +1,6 @@
 cppimport
 numpy
+pyyaml
 pybind11 >= 2.6.0
 moderngl >= 5.5.0
 imageio >= 2.0.0

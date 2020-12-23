@@ -1,0 +1,27 @@
+---
+render:
+    weather: 'none'
+#include "dashboard.yaml"
+---
+sensor:
+    name: "left"
+    type: "RGBCamera"
+    attributes:
+        image_size_x: 256
+        image_size_y: 256
+        fov: 90
+    transform:
+        location: [ 5.5, 0., 2.5 ]
+        yaw: -45.0
+
+---
+sensor:
+    name: "right"
+    type: "RGBCamera"
+    attributes:
+        image_size_x: 256
+        image_size_y: 256
+        fov: 90
+    transform:
+        location: [ 5.5, 0., 2.5 ]
+        yaw: 45.0

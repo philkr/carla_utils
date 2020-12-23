@@ -1,12 +1,12 @@
 ---
-agents:
-  filter: "vehicle.*"
-  n: 10
-  cars_only: True
-  autopilot: True
-  role_name: "autopilot"
+scenario:
+  agents:
+    - filter: "vehicle.*"
+      n: 10
+      cars_only: True
+      autopilot: True
+      role_name: "autopilot"
 
-weather: None
-synchronous_mode: True
-no_rendering_mode: True
-fixed_delta_seconds: 0.1
+  synchronous_mode: True
+  no_rendering_mode: True
+  fixed_delta_seconds: 0.1
