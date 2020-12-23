@@ -9,7 +9,6 @@
 #include "carla/geom/Location.h"
 #include "carla/geom/Math.h"
 #include "carla/geom/CubicPolynomial.h"
-#include "carla/geom/Rtree.h"
 
 namespace carla {
 namespace road {
@@ -246,9 +245,9 @@ namespace element {
       double s = 0;
       double t = 0;
     };
-    using Rtree = geom::SegmentCloudRtree<RtreeValue, 1>;
-    using TreeElement = Rtree::TreeElement;
-    Rtree _rtree;
+//    using Rtree = geom::SegmentCloudRtree<RtreeValue, 1>;
+//    using TreeElement = Rtree::TreeElement;
+//    Rtree _rtree;
     void PreComputeSpline();
   };
 
@@ -334,9 +333,11 @@ namespace element {
       double t_u = 0;
       double t_v = 0;
     };
-    using Rtree = geom::SegmentCloudRtree<RtreeValue, 1>;
-    using TreeElement = Rtree::TreeElement;
-    Rtree _rtree;
+    // NOTE: Removed for now, because it's unused. If we ever need this, a std::map<float, RtreeValue> with lower_bound
+    //       Should do the trick
+//    using Rtree = geom::SegmentCloudRtree<RtreeValue, 1>;
+//    using TreeElement = Rtree::TreeElement;
+//    Rtree _rtree;
     void PreComputeSpline();
   };
 

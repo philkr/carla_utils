@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "carla/geom/KDtree.h"
 #include "carla/geom/Mesh.h"
-#include "carla/geom/Rtree.h"
 #include "carla/geom/Transform.h"
 #include "carla/NonCopyable.h"
 #include "carla/road/element/LaneMarking.h"
@@ -18,7 +18,7 @@
 //#include "carla/rpc/OpendriveGenerationParameters.h"
 
 #include <optional>
-
+#include <tuple>
 #include <vector>
 
 namespace carla {
@@ -33,9 +33,7 @@ namespace road {
     /// -- Constructor ---------------------------------------------------------
     /// ========================================================================
 
-    Map(MapData m) : _data(std::move(m)) {
-      CreateRtree();
-    }
+    Map(MapData m);
 
     /// ========================================================================
     /// -- Georeference --------------------------------------------------------
@@ -147,9 +145,6 @@ namespace road {
 
     const Junction* GetJunction(JuncId id) const;
 
-    std::unordered_map<road::RoadId, std::unordered_set<road::RoadId>>
-        ComputeJunctionConflicts(JuncId id) const;
-
 //    /// Buids a mesh based on the OpenDRIVE
 //    geom::Mesh GenerateMesh(
 //        const double distance,
@@ -183,24 +178,9 @@ private:
     friend MapBuilder;
     MapData _data;
 
-    using Rtree = geom::SegmentCloudRtree<Waypoint>;
-    Rtree _rtree;
-
-    void CreateRtree();
-
-    /// Helper Functions for constructing the rtree element list
-    void AddElementToRtree(
-        std::vector<Rtree::TreeElement> &rtree_elements,
-        geom::Transform &current_transform,
-        geom::Transform &next_transform,
-        Waypoint &current_waypoint,
-        Waypoint &next_waypoint);
-
-    void AddElementToRtreeAndUpdateTransforms(
-        std::vector<Rtree::TreeElement> &rtree_elements,
-        geom::Transform &current_transform,
-        Waypoint &current_waypoint,
-        Waypoint &next_waypoint);
+    using KDtree = geom::KDtree<geom::Location, Waypoint>;
+    std::unique_ptr<KDtree> _kdtree;
+    void CreateKDtree();
   };
 
 } // namespace road
