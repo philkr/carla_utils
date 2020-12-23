@@ -139,9 +139,6 @@ class Renderer:
         for f in frames:
             image = self.render(world_map, f, view_matrix=view_matrix)
             writer.append_data(np.array(image))
-            import cv2
-            cv2.imshow('asdf', cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
-            cv2.waitKey(100)
         writer.close()
 
 
