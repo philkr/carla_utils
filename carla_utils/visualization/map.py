@@ -11,7 +11,7 @@ def _xy(p):
     return np.array((p.x, p.y))
 
 
-@RenderFunction.register
+# @RenderFunction.register
 class MapOutline(RenderFunction):
     render_type = moderngl.LINE_STRIP
     geometry_shader = """{{HEAD}}
