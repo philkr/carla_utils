@@ -11,7 +11,7 @@ def _xy(p):
     return np.array((p.x, p.y))
 
 
-@RenderFunction.register
+# @RenderFunction.register
 class MapOutline(RenderFunction):
     render_type = moderngl.LINE_STRIP
     geometry_shader = """{{HEAD}}
@@ -32,22 +32,28 @@ class MapOutline(RenderFunction):
     uniforms = dict(const_color=color.NP4['aluminium4'], zorder=-11)
 
     def _update_geometry(self, world_map, frame, road_precision=1):
-        if self._position is None:
-            # Center location and right vector
-            position, right = [], []
+        if self._position is not None:
+            return set()
 
-            wps = world_map.generate_waypoints(1e10)
-            for p in wps:
-                # Find all points on the lane
-                lane_wps = list(reversed(p.previous_until_lane_start(road_precision))) + [p] + list(p.next_until_lane_end(road_precision))
-                # Add the current lane
-                position.extend([_xy(w.transform.location) for w in lane_wps])
-                right.extend([_xy(0.5 * w.lane_width * w.transform.get_right_vector()) for w in lane_wps])
-                # and a end-primitive marker (right=0)
-                position.append((0, 0))
-                right.append((0, 0))
+        # Center location and right vector
+        position, right = [], []
 
-            self._position, self._right = np.array(position, dtype='f4'), np.array(right, dtype='f4')
+        for p in world_map.generate_waypoints(1e10):
+            # Find all points on the lane
+            lane_wps = list(reversed(p.previous_until_lane_start(road_precision)))
+            lane_wps.append(p)
+            lane_wps.extend(p.next_until_lane_end(road_precision))
+
+            # Add the current lane
+            position.extend([_xy(w.transform.location) for w in lane_wps])
+            right.extend([_xy(0.5 * w.lane_width * w.transform.get_right_vector()) for w in lane_wps])
+
+            # and a end-primitive marker (right=0)
+            position.append((0, 0))
+            right.append((0, 0))
+
+        self._position, self._right = np.array(position, dtype='f4'), np.array(right, dtype='f4')
+
         return set()
 
 

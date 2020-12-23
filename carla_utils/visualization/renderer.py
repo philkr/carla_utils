@@ -62,12 +62,17 @@ class RenderFunction(RenderFunctionRegistry):
                     # self._bo[n].orphan(a.size*4)
                     self._bo[n].write(a.astype('f4'))
                     # self._bo[n] = ctx.buffer(a.astype('f4'))
+                if n == 'color' and a is not None:
+                    print(self, a.shape, self._position.shape)
 
     def render(self, ctx, **uniforms):
         if self._position is not None:
             # Create the shader programs and add them to the vbo
             if self._vao is None:
-                prog = ctx.program(vertex_shader=self.vertex_shader, geometry_shader=self.geometry_shader.replace('{{HEAD}}', GS_HEAD), fragment_shader=self.fragment_shader)
+                prog = ctx.program(
+                        vertex_shader=self.vertex_shader,
+                        geometry_shader=self.geometry_shader.replace('{{HEAD}}', GS_HEAD),
+                        fragment_shader=self.fragment_shader)
                 for k, v in self.uniforms.items():
                     if not isinstance(v, np.ndarray):
                         v = np.array(v)
@@ -132,6 +137,9 @@ class Renderer:
         for f in frames:
             image = self.render(world_map, f, view_matrix=view_matrix)
             writer.append_data(np.array(image))
+            import cv2
+            cv2.imshow('asdf', cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
+            cv2.waitKey(1)
         writer.close()
 
 

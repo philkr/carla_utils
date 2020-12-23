@@ -23,6 +23,7 @@ void main() {
     gl_Position = vec4(position, 0, 1);
 }
 """
+
 GS_HEAD = """
 #version 330
 
@@ -39,6 +40,7 @@ out GS_OUT {
     vec3 color;
 } gs_out;
 """
+
 GENERIC_FS = """
 #version 330
 in GS_OUT {
@@ -63,6 +65,7 @@ void main(){
     EndPrimitive();
 }
 """
+
 FILLED_RECT_GS = """{{HEAD}}
 layout(points) in;
 layout(triangle_strip, max_vertices = 8) out;
@@ -84,6 +87,7 @@ void main(){
     }
 }
 """
+
 NGON_OUTLINE_GS = """{{HEAD}}
 #define N %d
 layout(points) in;
@@ -116,6 +120,7 @@ void main(){
     EndPrimitive();
 }
 """
+
 NGON_GS = """{{HEAD}}
 #define N %d
 layout(points) in;
