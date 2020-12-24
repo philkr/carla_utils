@@ -62,12 +62,9 @@ class RenderFunction(RenderFunctionRegistry):
                     # self._bo[n].orphan(a.size*4)
                     self._bo[n].write(a.astype('f4'))
                     # self._bo[n] = ctx.buffer(a.astype('f4'))
-                if n == 'color' and a is not None:
-                    print(self, a.shape, self._position.shape)
 
     def render(self, ctx, **uniforms):
         if self._position is not None:
-            print(self)
             # Create the shader programs and add them to the vbo
             if self._vao is None:
                 prog = ctx.program(
