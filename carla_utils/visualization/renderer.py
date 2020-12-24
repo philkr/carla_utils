@@ -62,8 +62,6 @@ class RenderFunction(RenderFunctionRegistry):
                     # self._bo[n].orphan(a.size*4)
                     self._bo[n].write(a.astype('f4'))
                     # self._bo[n] = ctx.buffer(a.astype('f4'))
-                if n == 'color' and a is not None:
-                    print(self, a.shape, self._position.shape)
 
     def render(self, ctx, **uniforms):
         if self._position is not None:
@@ -78,7 +76,6 @@ class RenderFunction(RenderFunctionRegistry):
                         v = np.array(v)
                     prog[k].write(v.astype('f4'))
                 self._vao = ctx.vertex_array(prog, [(v, '3f' if k == 'color' else '2f', k) for k, v in self._bo.items()])
-
 
             # Update the uniforms
             for k, v in uniforms.items():
@@ -139,9 +136,6 @@ class Renderer:
         for f in tqdm(frames):
             image = self.render(world_map, f, view_matrix=view_matrix)
             writer.append_data(np.array(image))
-            import cv2
-            cv2.imshow('asdf', cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
-            cv2.waitKey(1)
         writer.close()
 
 
