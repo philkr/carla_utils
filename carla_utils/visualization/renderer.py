@@ -132,8 +132,9 @@ class Renderer:
     def save_video(self, world_map, frames, output, view_matrix=None, fps=30):
         import imageio
         import numpy as np
+        from ..util import tqdm
         writer = imageio.get_writer(output, fps=fps, quality=9)
-        for f in frames:
+        for f in tqdm(frames):
             image = self.render(world_map, f, view_matrix=view_matrix)
             writer.append_data(np.array(image))
         writer.close()
