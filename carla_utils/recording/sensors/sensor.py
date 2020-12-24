@@ -1,4 +1,6 @@
+import logging
 import random
+import queue
 
 from contextlib import contextmanager
 from pathlib import Path
@@ -56,7 +58,40 @@ class SensorRegistry:
 
     @staticmethod
     def find(name):
-        return SensorRegistry._all[name] if name in SensorRegistry._all else None
+        assert name in SensorRegistry._all, 'No sensor of type {!r} found!'.format(name)
+        return SensorRegistry._all[name]
+
+
+class SensorSyncWorld:
+    def __init__(self, world):
+        self._world = world
+        self._queue = queue.Queue()
+        self._names = set()
+
+    def register_sensor(self, name):
+        self._names.add(name)
+
+    def tick(self, *args, timeout=1.0, **kwargs):
+        world_tick = self._world.tick(*args, **kwargs)
+        unfinished = set(self._names)
+
+        try:
+            while unfinished:
+                tick, name = self._queue.get(timeout=timeout)
+                if tick == world_tick:
+                    unfinished.remove(name)
+                else:
+                    logging.warn('World on tick {!r}, Sensor {!r} on tick {:d}.'.format(world_tick, name, tick))
+        except queue.Empty:
+            logging.warn('Not all sensors finished on tick {:d}, Unfinished: {!r}.'.format(world_tick, unfinished))
+
+        return world_tick
+
+    def _sensor_tick(self, tick_name):
+        self._queue.put(tick_name)
+
+    def __getattr__(self, item):
+        return self.__dict__[item] if item[0] == '_' else getattr(self._world, item)
 
 
 class Sensor(SensorRegistry):
@@ -79,11 +114,19 @@ class Sensor(SensorRegistry):
             self.actor = world.spawn_actor(blueprint, transform, target_actor)
         else:
             self.actor = world.spawn_actor(blueprint, transform)
+
         # and setup the callback
+        world.register_sensor(settings.name)
+
+        self.finalize = lambda frame_number: world._sensor_tick((frame_number, settings.name))
         self.actor.listen(self.callback)
 
-    def callback(self, x):
+    def _callback(self, x):
         pass
+
+    def callback(self, x):
+        self._callback(x)
+        self.finalize(x.frame_number)
 
     def cleanup(self):
         if hasattr(self, 'actor') and self.actor is not None:
@@ -110,16 +153,18 @@ def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSett
     settings.no_rendering_mode = len(sensor_config) < 1
     world.apply_settings(settings)
 
+    # Make world.tick wait for sensors...
+    world = SensorSyncWorld(world)
+
     # Setup all sensors
     sensors = []
     for c in sensor_config:
         S = Sensor.find(c.type)
-        assert S is not None, 'No sensor of type {!r} found!'.format(c.type)
         sensors.append(S(world, c, output_path))
 
     try:
         # leave the context manager
-        yield sensors
+        yield world
     finally:
         # cleanup
         for s in sensors:
