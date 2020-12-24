@@ -67,6 +67,7 @@ class RenderFunction(RenderFunctionRegistry):
 
     def render(self, ctx, **uniforms):
         if self._position is not None:
+            print(self)
             # Create the shader programs and add them to the vbo
             if self._vao is None:
                 prog = ctx.program(
@@ -78,6 +79,7 @@ class RenderFunction(RenderFunctionRegistry):
                         v = np.array(v)
                     prog[k].write(v.astype('f4'))
                 self._vao = ctx.vertex_array(prog, [(v, '3f' if k == 'color' else '2f', k) for k, v in self._bo.items()])
+
 
             # Update the uniforms
             for k, v in uniforms.items():
@@ -139,7 +141,7 @@ class Renderer:
             writer.append_data(np.array(image))
             import cv2
             cv2.imshow('asdf', cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR))
-            cv2.waitKey(1)
+            cv2.waitKey(100)
         writer.close()
 
 
