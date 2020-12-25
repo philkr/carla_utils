@@ -1,5 +1,5 @@
 from .renderer import RenderFunction
-from .shaders import NGON_GS, CAR_GS, BIKE_GS
+from .shaders import TRAFFIC_LIGHT_GS, NGON_GS, CAR_GS, BIKE_GS
 from ..recording import AgentProperty
 from . import color
 import numpy as np
@@ -81,5 +81,5 @@ class TrafficLightRenderer(ActorRenderer):
             return self.COLORS[a.state]
         return self.COLORS[-1]
 
-    geometry_shader = NGON_GS % 20
+    geometry_shader = TRAFFIC_LIGHT_GS
     uniforms = dict(zorder=2)

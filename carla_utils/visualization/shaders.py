@@ -132,6 +132,24 @@ void main(){
 }
 """
 
+TRAFFIC_LIGHT_GS = """{{HEAD}}
+#define N 10
+layout(points) in;
+layout(triangle_strip, max_vertices = N) out;
+void main(){
+    gs_out.color = gs_in[0].color;
+    for(int i=0; i<N; i+=2) {
+        float a = radians(90.*(i+1)/N);
+        float sa = sin(a), ca = cos(a);
+        gl_Position = vec4(view_matrix * vec3(gs_in[0].position-sa*gs_in[0].right+ca*gs_in[0].forward, 1), -zorder/100., 1);
+        EmitVertex();
+        gl_Position = vec4(view_matrix * vec3(gs_in[0].position-sa*gs_in[0].right-ca*gs_in[0].forward, 1), -zorder/100., 1);
+        EmitVertex();
+    }
+    EndPrimitive();
+}
+"""
+
 CAR_GS = """{{HEAD}}
 layout(points) in;
 layout(triangle_strip, max_vertices = 8) out;
