@@ -203,62 +203,62 @@ lane_marking_textures = np.array([
 ])
 
 lane_marking_color = [
-    color.white, #Standard
-    color.skyblue1, #Blue
-    color.chameleon1, #Green
-    color.scarletred1, #Red
-    color.white, #White
-    color.butter1, #Yellow
-    color.plum1, #Other
+    color.white,            # Standard
+    color.skyblue1,         # Blue
+    color.chameleon1,       # Green
+    color.scarletred1,      # Red
+    color.white,            # White
+    color.butter1,          # Yellow
+    color.plum1,            # Other
 ]
 
 
 @RenderFunction.register
 class CenterLaneRenderer(MapOutline):
     geometry_shader = """{{HEAD}}
+    flat out int marking_id;
+    out vec2 tex_coord;
 
-flat out int marking_id;
-out vec2 tex_coord;
+    layout(lines) in;
+    layout(triangle_strip, max_vertices = 4) out;
 
-layout(lines) in;
-layout(triangle_strip, max_vertices = 4) out;
+    uniform float scale=1;
 
-uniform float scale=1;
+    void main(){
+        if (length(gs_in[0].right) > 1e-3 && length(gs_in[1].right) > 1e-3) {
+            for (int i=0; i<2; i++) {
+                marking_id = int(gs_in[i].marking);
+                gs_out.color = gs_in[i].color;
 
-void main(){
-    if (length(gs_in[0].right) > 1e-3 && length(gs_in[1].right) > 1e-3) {
-        for (int i=0; i<2; i++) {
-            marking_id = int(gs_in[i].marking);
-            gs_out.color = gs_in[i].color;
-            
-            tex_coord = vec2(gs_in[i].s / scale, 1);
-            gl_Position = vec4(view_matrix * vec3(gs_in[i].position+gs_in[i].right, 1), -zorder/100., 1);
-            EmitVertex();
-            
-            tex_coord = vec2(gs_in[i].s / scale, 0);
-            gl_Position = vec4(view_matrix * vec3(gs_in[i].position-gs_in[i].right, 1), -zorder/100., 1);
-            EmitVertex();
+                tex_coord = vec2(gs_in[i].s / scale, 1);
+                gl_Position = vec4(view_matrix * vec3(gs_in[i].position+gs_in[i].right, 1), -zorder/100., 1);
+                EmitVertex();
+
+                tex_coord = vec2(gs_in[i].s / scale, 0);
+                gl_Position = vec4(view_matrix * vec3(gs_in[i].position-gs_in[i].right, 1), -zorder/100., 1);
+                EmitVertex();
+            }
+            EndPrimitive();
         }
-        EndPrimitive();
-    }
-}"""
+    }"""
+
     fragment_shader = """
-#version 330
-in GS_OUT {
-    vec3 color;
-} fs_in;
-flat in int marking_id;
-in vec2 tex_coord;
+    #version 330
+    in GS_OUT {
+        vec3 color;
+    } fs_in;
+    flat in int marking_id;
+    in vec2 tex_coord;
 
-out vec4 fragColor;
+    out vec4 fragColor;
 
-uniform sampler2DArray lane_markings;
+    uniform sampler2DArray lane_markings;
 
-void main() {
-    float lv = texture(lane_markings, vec3(tex_coord.yx, float(marking_id))).x;
-    fragColor = vec4(fs_in.color, lv);
-}
-"""
+    void main() {
+        float lv = texture(lane_markings, vec3(tex_coord.yx, float(marking_id))).x;
+        fragColor = vec4(fs_in.color, lv);
+    }
+    """
 
     uniforms = dict(zorder=-9, scale=2)
     _lm_tex = None
@@ -314,5 +314,3 @@ void main() {
 
     def _end(self, ctx, vao):
         ctx.disable(moderngl.BLEND)
-
-
