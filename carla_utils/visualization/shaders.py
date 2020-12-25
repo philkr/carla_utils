@@ -1,45 +1,38 @@
-GENERIC_VS = """
-#version 330
+type_map = {'1f': 'float', '2f': 'vec2', '3f': 'vec3', '4f': 'vec4'}
 
-uniform vec4 const_color = vec4(0., 0., 0., 0.);
 
-in vec2 position;
-in vec2 forward;
-in vec2 right;
-in vec3 color;
+def make_vs(buffers):
+    return """#version 330
+{in_def}
 
-out VS_OUT {
-    vec2 position;
-    vec2 forward;
-    vec2 right;
-    vec3 color;
-} vs_out;
+out VS_OUT {{
+{out_def}
+}} vs_out;
+void main() {{
+{assign}
+}}
+""".format(
+        in_def='\n'.join(['in {} {};'.format(type_map[t], n) for n, (a, t) in buffers.items()]),
+        out_def='\n'.join(['  {} {};'.format(type_map[t], n) for n, (a, t) in buffers.items()]),
+        assign='\n'.join(['    vs_out.{0} = {0};'.format(n) for n, _ in buffers.items()]),
+           )
 
-void main() {
-    vs_out.position = position;
-    vs_out.forward = forward;
-    vs_out.right = right;
-    vs_out.color = color * (1-const_color.w) + const_color.xyz * const_color.w;
-    gl_Position = vec4(position, 0, 1);
-}
-"""
 
-GS_HEAD = """
+def make_gs_head(buffers):
+    return """
 #version 330
 
 uniform mat3x2 view_matrix;
-uniform float zorder;
+uniform float zorder = 0;
 
-in VS_OUT {
-    vec2 position;
-    vec2 forward;
-    vec2 right;
+in VS_OUT {{
+{out_def}
+}} gs_in[];
+out GS_OUT {{
     vec3 color;
-} gs_in[];
-out GS_OUT {
-    vec3 color;
-} gs_out;
-"""
+}} gs_out;
+""".format(out_def='\n'.join(['  {} {};'.format(type_map[t], n) for n, (a, t) in buffers.items()]))
+
 
 GENERIC_FS = """
 #version 330

@@ -29,8 +29,9 @@ class MapOutline(RenderFunction):
     geometry_shader = """{{HEAD}}
     layout(lines) in;
     layout(line_strip, max_vertices = 4) out;
+    uniform vec3 fill_color = vec3(0,0,0);
     void main(){
-        gs_out.color = gs_in[0].color;
+        gs_out.color = fill_color;
         if (length(gs_in[0].right) > 1e-1 && length(gs_in[1].right) > 1e-1) {
             for (int r=-1; r<=1; r+=2) {
                 for (int i=0; i<2; i++) {
@@ -42,7 +43,7 @@ class MapOutline(RenderFunction):
         }
     }"""
 
-    uniforms = dict(const_color=color.NP4['aluminium4'], zorder=-11)
+    uniforms = dict(fill_color=color.NP['aluminium4'], zorder=-11)
 
     def _update_geometry(self, world_map, frame, road_precision=1, filter=None):
         if 'position' in self._bo:
@@ -68,8 +69,9 @@ class MapRoad(MapOutline):
     geometry_shader = """{{HEAD}}
     layout(lines) in;
     layout(triangle_strip, max_vertices = 4) out;
+    uniform vec3 fill_color = vec3(0,0,0);
     void main(){
-        gs_out.color = gs_in[0].color;
+        gs_out.color = fill_color;
         if (length(gs_in[0].right) > 1e-1 && length(gs_in[1].right) > 1e-1) {
             for (int i=0; i<2; i++)
                 for (int r=-1; r<=1; r+=2) {
@@ -79,7 +81,7 @@ class MapRoad(MapOutline):
             EndPrimitive();
         }
     }"""
-    uniforms = dict(const_color=color.NP4['aluminium1'], zorder=-10)
+    uniforms = dict(fill_color=color.NP['aluminium1'], zorder=-10)
 
 
 @RenderFunction.register

@@ -2,7 +2,7 @@ import moderngl
 import numpy as np
 from PIL import Image
 from typing import List, Optional, Type
-from .shaders import GENERIC_FS, GENERIC_VS, GS_HEAD
+from .shaders import GENERIC_FS, make_vs, make_gs_head
 
 __all__ = ['Renderer', 'RenderFunction', 'bounding_view_matrix', 'const_view_matrix', 'follow_view_matrix']
 
@@ -23,7 +23,7 @@ class RenderFunctionRegistry:
 class RenderFunction(RenderFunctionRegistry):
     # Class properties
     render_type = moderngl.POINTS
-    vertex_shader = GENERIC_VS
+    vertex_shader = None
     geometry_shader = None
     fragment_shader = GENERIC_FS
     uniforms = {}
@@ -65,8 +65,8 @@ class RenderFunction(RenderFunctionRegistry):
             # Create the shader programs and add them to the vbo
             if self._vao is None:
                 prog = ctx.program(
-                        vertex_shader=self.vertex_shader,
-                        geometry_shader=self.geometry_shader.replace('{{HEAD}}', GS_HEAD),
+                        vertex_shader=self.vertex_shader or make_vs(self._bo),
+                        geometry_shader=self.geometry_shader.replace('{{HEAD}}', make_gs_head(self._bo)),
                         fragment_shader=self.fragment_shader)
                 for k, v in self.uniforms.items():
                     if not isinstance(v, np.ndarray):
