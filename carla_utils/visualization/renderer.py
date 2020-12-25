@@ -29,7 +29,6 @@ class RenderFunction(RenderFunctionRegistry):
     uniforms = {}
 
     # Instance variables
-    _position, _right, _forward, _color = None, None, None, None
     _bo = None
     _vao = None
 
@@ -44,27 +43,25 @@ class RenderFunction(RenderFunctionRegistry):
 
     def update(self, ctx, world_map=None, frame=None):
         # Create the geometry
-        what = self._update_geometry(world_map, frame)
-        if what is None:
-            what = ['position', 'right', 'forward', 'color']
+        buffers = self._update_geometry(world_map, frame)
 
-        if self._position is not None:
+        if buffers is not None:
             # Update the bounding box
-            self.bounding_box = self._position.min(axis=0), self._position.max(axis=0)
+            if 'position' in buffers:
+                self.bounding_box = buffers['position'].min(axis=0), buffers['position'].max(axis=0)
 
             # Create or update the buffer objects
-            for n in ['position', 'right', 'forward', 'color']:
-                a = getattr(self, '_'+n)
-                if a is not None and n not in self._bo:
-                    self._bo[n] = ctx.buffer(a.astype('f4'))
-                elif a is not None and n in what:
-                    # TODO: Consider self._bo[n].orphan or reallocate here
-                    # self._bo[n].orphan(a.size*4)
-                    self._bo[n].write(a.astype('f4'))
-                    # self._bo[n] = ctx.buffer(a.astype('f4'))
+            for n, a in buffers.items():
+                assert len(a.shape) == 2, 'Buffer {!r} should be two dimensional'.format(n)
+                assert a.shape[1] in {1, 2, 3, 4}, 'Buffer contains {}d element, only 1-4 supported!'.format(a.shape[1])
+                if n not in self._bo:
+                    assert self._vao is None, 'Cannot create new buffer after first render pass {!r}'.format(n)
+                    self._bo[n] = (ctx.buffer(a.astype('f4')), '{}f'.format(a.shape[1]))
+                else:
+                    self._bo[n][0].write(a.astype('f4'))
 
     def render(self, ctx, **uniforms):
-        if self._position is not None:
+        if len(self._bo):
             # Create the shader programs and add them to the vbo
             if self._vao is None:
                 prog = ctx.program(
@@ -75,7 +72,7 @@ class RenderFunction(RenderFunctionRegistry):
                     if not isinstance(v, np.ndarray):
                         v = np.array(v)
                     prog[k].write(v.astype('f4'))
-                self._vao = ctx.vertex_array(prog, [(v, '3f' if k == 'color' else '2f', k) for k, v in self._bo.items()])
+                self._vao = ctx.vertex_array(prog, [(*v, k) for k, v in self._bo.items()])
 
             # Update the uniforms
             for k, v in uniforms.items():

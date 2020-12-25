@@ -20,23 +20,24 @@ class AbstractSignRenderer(RenderFunction):
     uniforms = dict(zorder=0, fill_color=color.white, border_size=0.5)
 
     def _update_geometry(self, world_map, frame):
-        if self._position is None:
+        if 'position' not in self._bo:
             actors = []
             for t in self.SIGN_TYPES:
                 actors.extend(world_map.get_all_landmarks_of_type(t))
             if len(actors):
-                self._position = np.zeros((len(actors), 2), dtype='f4')
-                self._right = np.zeros((len(actors), 2), dtype='f4')
-                self._forward = np.zeros((len(actors), 2), dtype='f4')
-                self._color = np.zeros((len(actors), 3), dtype='f4')
+                position = np.zeros((len(actors), 2), dtype='f4')
+                right = np.zeros((len(actors), 2), dtype='f4')
+                forward = np.zeros((len(actors), 2), dtype='f4')
+                color = np.zeros((len(actors), 3), dtype='f4')
                 for i, a in enumerate(actors):
                     t = a.transform
                     w, h = max(self.MIN_SIZE, a.width)/2, max(self.MIN_SIZE, a.height)/2
-                    self._position[i] = _xy(t.location)
-                    self._right[i] = _xy(t.get_right_vector()) * w
-                    self._forward[i] = _xy(t.get_forward_vector()) * h
-                    self._color[i] = self.SIGN_COLOR
-        return set()
+                    position[i] = _xy(t.location)
+                    right[i] = _xy(t.get_right_vector()) * w
+                    forward[i] = _xy(t.get_forward_vector()) * h
+                    color[i] = self.SIGN_COLOR
+                return {'position': position, 'right': right, 'forward': forward, 'color': color}
+        return {}
 
 
 @RenderFunction.register
