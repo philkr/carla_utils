@@ -260,7 +260,7 @@ void main() {
 }
 """
 
-    uniforms = dict(zorder=-9)
+    uniforms = dict(zorder=-9, scale=2)
     _lm_tex = None
 
     def _update_geometry(self, world_map, frame, road_precision=1):
@@ -280,7 +280,7 @@ void main() {
                         c = lane_marking_color[m.color]
 
                         position.append(x + d * r)
-                        right.append(m.width*_xy(w.transform.get_right_vector()))
+                        right.append(3*m.width*_xy(w.transform.get_right_vector()))
                         s.append(w.s)
                         marking.append(int(m.type))
                         if m.type == m.type.Grass:
@@ -307,6 +307,7 @@ void main() {
             data = np.kron(data, np.ones((1, 10, 10), dtype=np.uint8))
             self._lm_tex = ctx.texture_array([data.shape[2], data.shape[1], data.shape[0]], 1, data=data)
             self._lm_tex.filter == (moderngl.NEAREST, moderngl.NEAREST)
+            self._lm_tex.repeat_x = False
         self._lm_tex.use(vao.program['lane_markings'].value)
         ctx.enable(moderngl.BLEND)
         ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA

@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from typing import List, Optional, Type
 from .shaders import GENERIC_FS, make_vs, make_gs_head
+from . import color
 
 __all__ = ['Renderer', 'RenderFunction', 'bounding_view_matrix', 'const_view_matrix', 'follow_view_matrix']
 
@@ -114,7 +115,7 @@ class Renderer:
 
         # Setup the fbo and view matrix
         self._fbo_msaa.use()
-        self._fbo_msaa.clear(0.99, 0.99, 0.99)
+        self._fbo_msaa.clear(*color.aluminium0)
         vm = view_matrix(world_map, frame, self._renderers)
         # Render
         for r in self._renderers:
