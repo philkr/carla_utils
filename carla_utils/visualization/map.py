@@ -261,6 +261,7 @@ void main() {
 """
 
     uniforms = dict(zorder=-9)
+    _lm_tex = None
 
     def _update_geometry(self, world_map, frame, road_precision=1):
         if 'position' in self._bo:
@@ -275,10 +276,10 @@ void main() {
                     m = getattr(w, '{}_lane_marking'.format(side))
                     if m.type is not m.type.NONE:
                         x = _xy(w.transform.location)
-                        r = 0.5 * d * w.lane_width * _xy(w.transform.get_right_vector())
+                        r = 0.5 * w.lane_width * _xy(w.transform.get_right_vector())
                         c = lane_marking_color[m.color]
 
-                        position.append(x+r)
+                        position.append(x + d * r)
                         right.append(m.width*_xy(w.transform.get_right_vector()))
                         s.append(w.s)
                         marking.append(int(m.type))
@@ -299,13 +300,18 @@ void main() {
                 's': np.array(s, dtype='f4').reshape(-1, 1),
                 'marking': np.array(marking, dtype='f4').reshape(-1, 1)}
 
-    def _setup_vao(self, ctx, vao):
-        data = 255*lane_marking_textures.astype(np.uint8)
-        # resize the array to avoid aliasing
-        data = np.kron(data, np.ones((1, 10, 10), dtype=np.uint8))
-        self._lm_tex = ctx.texture_array([data.shape[2], data.shape[1], data.shape[0]], 1, data=data)
-        self._lm_tex.filter == (moderngl.NEAREST, moderngl.NEAREST)
+    def _begin(self, ctx, vao):
+        if self._lm_tex is None:
+            data = 255*lane_marking_textures.astype(np.uint8)
+            # resize the array to avoid aliasing
+            data = np.kron(data, np.ones((1, 10, 10), dtype=np.uint8))
+            self._lm_tex = ctx.texture_array([data.shape[2], data.shape[1], data.shape[0]], 1, data=data)
+            self._lm_tex.filter == (moderngl.NEAREST, moderngl.NEAREST)
         self._lm_tex.use(vao.program['lane_markings'].value)
         ctx.enable(moderngl.BLEND)
         ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+
+    def _end(self, ctx, vao):
+        ctx.disable(moderngl.BLEND)
+
 

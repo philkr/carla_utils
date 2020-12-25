@@ -38,7 +38,10 @@ class RenderFunction(RenderFunctionRegistry):
     def __init__(self):
         self._bo = {}
 
-    def _setup_vao(self, ctx, vao):
+    def _begin(self, ctx, vao):
+        pass
+
+    def _end(self, ctx, vao):
         pass
 
     def _update_geometry(self, world_map, frame):
@@ -76,12 +79,13 @@ class RenderFunction(RenderFunctionRegistry):
                         v = np.array(v)
                     prog[k].write(v.astype('f4'))
                 self._vao = ctx.vertex_array(prog, [(*v, k) for k, v in self._bo.items()])
-                self._setup_vao(ctx, self._vao)
 
             # Update the uniforms
             for k, v in uniforms.items():
                 self._vao.program[k].write(v)
+            self._begin(ctx, self._vao)
             self._vao.render(self.render_type)
+            self._end(ctx, self._vao)
 
 
 class Renderer:
