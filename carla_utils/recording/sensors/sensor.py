@@ -70,7 +70,7 @@ class SensorSyncWorld:
     def register_sensor(self, name, obj):
         self._sensors[name] = obj
 
-    def __idx__(self, name):
+    def __getitem__(self, name):
         return self._sensors.get(name, None)
 
     def __iter__(self):
@@ -165,7 +165,7 @@ def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSett
     sensors = []
     for c in sensor_config:
         S = Sensor.find(c.type)
-        assert c.type in SensorRegistry._all, 'No sensor of type {!r} found!'.format(c.type)
+        assert S is not None, 'No sensor of type {!r} found!'.format(c.type)
         sensors.append(S(world, c, output_path))
 
     try:
