@@ -2,7 +2,8 @@ import moderngl
 import numpy as np
 from PIL import Image
 from typing import List, Optional, Type
-from .shaders import GENERIC_FS, GENERIC_VS, GS_HEAD
+from .shaders import GENERIC_FS, make_vs, make_gs_head
+from . import color
 
 __all__ = ['Renderer', 'RenderFunction', 'bounding_view_matrix', 'const_view_matrix', 'follow_view_matrix']
 
@@ -23,13 +24,12 @@ class RenderFunctionRegistry:
 class RenderFunction(RenderFunctionRegistry):
     # Class properties
     render_type = moderngl.POINTS
-    vertex_shader = GENERIC_VS
+    vertex_shader = None
     geometry_shader = None
     fragment_shader = GENERIC_FS
     uniforms = {}
 
     # Instance variables
-    _position, _right, _forward, _color = None, None, None, None
     _bo = None
     _vao = None
 
@@ -39,45 +39,54 @@ class RenderFunction(RenderFunctionRegistry):
     def __init__(self):
         self._bo = {}
 
+    def _begin(self, ctx, vao):
+        pass
+
+    def _end(self, ctx, vao):
+        pass
+
     def _update_geometry(self, world_map, frame):
         raise NotImplementedError()
 
     def update(self, ctx, world_map=None, frame=None):
         # Create the geometry
-        what = self._update_geometry(world_map, frame)
-        if what is None:
-            what = ['position', 'right', 'forward', 'color']
+        buffers = self._update_geometry(world_map, frame)
 
-        if self._position is not None:
+        if buffers is not None:
             # Update the bounding box
-            self.bounding_box = self._position.min(axis=0), self._position.max(axis=0)
+            if 'position' in buffers:
+                self.bounding_box = buffers['position'].min(axis=0), buffers['position'].max(axis=0)
 
             # Create or update the buffer objects
-            for n in ['position', 'right', 'forward', 'color']:
-                a = getattr(self, '_'+n)
-                if a is not None and n not in self._bo:
-                    self._bo[n] = ctx.buffer(a.astype('f4'))
-                elif a is not None and n in what:
-                    # TODO: Consider self._bo[n].orphan or reallocate here
-                    # self._bo[n].orphan(a.size*4)
-                    self._bo[n].write(a.astype('f4'))
-                    # self._bo[n] = ctx.buffer(a.astype('f4'))
+            for n, a in buffers.items():
+                assert len(a.shape) == 2, 'Buffer {!r} should be two dimensional'.format(n)
+                assert a.shape[1] in {1, 2, 3, 4}, 'Buffer contains {}d element, only 1-4 supported!'.format(a.shape[1])
+                if n not in self._bo:
+                    assert self._vao is None, 'Cannot create new buffer after first render pass {!r}'.format(n)
+                    self._bo[n] = (ctx.buffer(a.astype('f4')), '{}f'.format(a.shape[1]))
+                else:
+                    self._bo[n][0].write(a.astype('f4'))
 
     def render(self, ctx, **uniforms):
-        if self._position is not None:
+        if len(self._bo):
             # Create the shader programs and add them to the vbo
             if self._vao is None:
-                prog = ctx.program(vertex_shader=self.vertex_shader, geometry_shader=self.geometry_shader.replace('{{HEAD}}', GS_HEAD), fragment_shader=self.fragment_shader)
+                prog = ctx.program(
+                        vertex_shader=self.vertex_shader or make_vs(self._bo),
+                        geometry_shader=self.geometry_shader.replace('{{HEAD}}', make_gs_head(self._bo)),
+                        fragment_shader=self.fragment_shader)
                 for k, v in self.uniforms.items():
                     if not isinstance(v, np.ndarray):
                         v = np.array(v)
                     prog[k].write(v.astype('f4'))
-                self._vao = ctx.vertex_array(prog, [(v, '3f' if k == 'color' else '2f', k) for k, v in self._bo.items()])
+                self._vao = ctx.vertex_array(prog, [(*v, k) for k, v in self._bo.items()])
 
             # Update the uniforms
             for k, v in uniforms.items():
                 self._vao.program[k].write(v)
+            self._begin(ctx, self._vao)
             self._vao.render(self.render_type)
+            self._end(ctx, self._vao)
 
 
 class Renderer:
@@ -106,7 +115,7 @@ class Renderer:
 
         # Setup the fbo and view matrix
         self._fbo_msaa.use()
-        self._fbo_msaa.clear(0.99, 0.99, 0.99)
+        self._fbo_msaa.clear(*color.aluminium0)
         vm = view_matrix(world_map, frame, self._renderers)
         # Render
         for r in self._renderers:
@@ -128,8 +137,9 @@ class Renderer:
     def save_video(self, world_map, frames, output, view_matrix=None, fps=30):
         import imageio
         import numpy as np
+        from ..util import tqdm
         writer = imageio.get_writer(output, fps=fps, quality=9)
-        for f in frames:
+        for f in tqdm(frames):
             image = self.render(world_map, f, view_matrix=view_matrix)
             writer.append_data(np.array(image))
         writer.close()

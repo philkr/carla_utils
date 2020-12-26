@@ -1,5 +1,5 @@
 from .renderer import RenderFunction
-from .shaders import NGON_GS, CAR_GS, BIKE_GS
+from .shaders import TRAFFIC_LIGHT_GS, NGON_GS, CAR_GS, BIKE_GS
 from ..recording import AgentProperty
 from . import color
 import numpy as np
@@ -25,21 +25,22 @@ class ActorRenderer(RenderFunction):
         except TypeError:
             w, h = self.SIZE, self.SIZE
         if len(actors):
-            self._position = np.zeros((len(actors), 2), dtype='f4')
-            self._right = np.zeros((len(actors), 2), dtype='f4')
-            self._forward = np.zeros((len(actors), 2), dtype='f4')
-            self._color = np.zeros((len(actors), 3), dtype='f4')
+            position = np.zeros((len(actors), 2), dtype='f4')
+            right = np.zeros((len(actors), 2), dtype='f4')
+            forward = np.zeros((len(actors), 2), dtype='f4')
+            color = np.zeros((len(actors), 3), dtype='f4')
             for i, a in enumerate(actors):
                 w2, h2 = w / 2., h / 2.
                 prop = AgentProperty.get(a.desc)
                 if prop is not None and 'extent' in prop:
                     h2, w2, _ = prop.extent
 
-                self._position[i] = a.location[:2]
-                self._right[i] = a.right[:2] * w2
-                self._forward[i] = a.forward[:2] * h2
-                self._color[i] = self.color(a)
-            return {'position', 'right', 'forward', 'color'}
+                position[i] = a.location[:2]
+                right[i] = a.right[:2] * w2
+                forward[i] = a.forward[:2] * h2
+                color[i] = self.color(a)
+            return {'position': position, 'right': right, 'forward': forward, 'color': color}
+        return {}
 
 
 @RenderFunction.register
@@ -80,5 +81,5 @@ class TrafficLightRenderer(ActorRenderer):
             return self.COLORS[a.state]
         return self.COLORS[-1]
 
-    geometry_shader = NGON_GS % 20
+    geometry_shader = TRAFFIC_LIGHT_GS
     uniforms = dict(zorder=2)
