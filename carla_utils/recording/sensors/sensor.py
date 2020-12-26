@@ -58,22 +58,27 @@ class SensorRegistry:
 
     @staticmethod
     def find(name):
-        assert name in SensorRegistry._all, 'No sensor of type {!r} found!'.format(name)
-        return SensorRegistry._all[name]
+        return SensorRegistry._all.get(name)
 
 
 class SensorSyncWorld:
     def __init__(self, world):
         self._world = world
         self._queue = queue.Queue()
-        self._names = set()
+        self._sensors = {}
 
-    def register_sensor(self, name):
-        self._names.add(name)
+    def register_sensor(self, name, obj):
+        self._sensors[name] = obj
+
+    def __idx__(self, name):
+        return self._sensors.get(name, None)
+
+    def __iter__(self):
+        yield from self._sensors.items()
 
     def tick(self, *args, timeout=1.0, **kwargs):
         world_tick = self._world.tick(*args, **kwargs)
-        unfinished = set(self._names)
+        unfinished = set(self._sensors.keys())
 
         try:
             while unfinished:
@@ -116,7 +121,7 @@ class Sensor(SensorRegistry):
             self.actor = world.spawn_actor(blueprint, transform)
 
         # and setup the callback
-        world.register_sensor(settings.name)
+        world.register_sensor(settings.name, self)
 
         self.finalize = lambda frame_number: world._sensor_tick(frame_number, settings.name)
         self.actor.listen(self.callback)
@@ -160,6 +165,7 @@ def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSett
     sensors = []
     for c in sensor_config:
         S = Sensor.find(c.type)
+        assert c.type in SensorRegistry._all, 'No sensor of type {!r} found!'.format(c.type)
         sensors.append(S(world, c, output_path))
 
     try:

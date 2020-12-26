@@ -49,3 +49,6 @@ def replay(client, recording: str, fps: int = 10):
         settings = world.get_settings()
         settings.synchronous_mode = False
         world.apply_settings(settings)
+
+        # Don't know why this doesn't work.
+        # client.stop_replayer(keep_actors=False)

@@ -1,4 +1,5 @@
 import pathlib
+import logging
 
 from .util import tqdm
 from .recording import Configuration, replay, sensors
@@ -28,6 +29,8 @@ def main():
     # Start recording the scenario
     with replay(client, args.recording) as world:
         with sensors(world, cfg.render, cfg.sensor, args.output_path) as sensor_world:
+            for k, v in sensor_world:
+                logging.warn('Sensor {!r}: {!r}'.format(k, v))
             try:
                 for _ in tqdm(range(min(args.max_steps, world._max_tick))):
                     sensor_world.tick()
