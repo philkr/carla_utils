@@ -87,8 +87,8 @@ class SensorSyncWorld:
 
         return world_tick
 
-    def _sensor_tick(self, tick_name):
-        self._queue.put(tick_name)
+    def _sensor_tick(self, frame_number, name):
+        self._queue.put((frame_number, name))
 
     def __getattr__(self, item):
         return self.__dict__[item] if item[0] == '_' else getattr(self._world, item)
@@ -97,7 +97,7 @@ class SensorSyncWorld:
 class Sensor(SensorRegistry):
     blueprint = None
 
-    def __init__(self, world, settings: SensorSettings, output_path: Path):
+    def __init__(self, world: SensorSyncWorld, settings: SensorSettings, output_path: Path):
         # Create the blueprint
         blueprint = world.get_blueprint_library().find(self.blueprint)
         assert blueprint is not None, 'Sensor blueprint {!r} not found'.format(self.blueprint)
@@ -118,7 +118,7 @@ class Sensor(SensorRegistry):
         # and setup the callback
         world.register_sensor(settings.name)
 
-        self.finalize = lambda frame_number: world._sensor_tick((frame_number, settings.name))
+        self.finalize = lambda frame_number: world._sensor_tick(frame_number, settings.name)
         self.actor.listen(self.callback)
 
     def _callback(self, x):

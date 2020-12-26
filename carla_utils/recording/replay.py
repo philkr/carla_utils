@@ -6,21 +6,17 @@ from .parse import parse
 
 class MaxTickWorld:
     def __init__(self, world, max_tick):
-        # need to use dict or this will get stuck in recursion.
-        self.__dict__['world'] = world
-        self.__dict__['max_tick'] = max_tick
+        self._world = world
+        self._max_tick = max_tick
 
     def tick(self, *args, **kwargs):
-        if self.max_tick > 0:
-            self.max_tick -= 1
-            return self.world.tick(*args, **kwargs)
+        if self._max_tick > 0:
+            self._max_tick -= 1
+            return self._world.tick(*args, **kwargs)
         return None
 
     def __getattr__(self, item):
-        return getattr(self.world, item)
-
-    def __setattr__(self, name, item):
-        return setattr(self.world, name, item)
+        return self.__dict__[item] if item[0] == '_' else getattr(self._world, item)
 
 
 @contextmanager

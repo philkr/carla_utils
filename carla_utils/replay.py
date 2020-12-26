@@ -29,7 +29,7 @@ def main():
     with replay(client, args.recording) as world:
         with sensors(world, cfg.render, cfg.sensor, args.output_path) as sensor_world:
             try:
-                for _ in tqdm(range(min(args.max_steps, sensor_world.max_tick))):
+                for _ in tqdm(range(min(args.max_steps, world._max_tick))):
                     sensor_world.tick()
             except KeyboardInterrupt:
                 pass
