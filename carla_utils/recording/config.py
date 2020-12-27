@@ -48,6 +48,37 @@ def load_file_with_include(fn):
         return re.sub('\#include +["<](.*)[">]', lambda m: load_file_with_include(fn.parent / m.group(1)), f.read())
 
 
+class ForAll:
+    def __init__(self, objects):
+        self._objects = objects
+
+    def __getitem__(self, item):
+        return ForAll([o[item] for o in self._objects])
+
+    def __setitem__(self, key, value):
+        for o in self._objects:
+            o[key] = value
+
+    def __getattr__(self, item):
+        if item[0] != '_':
+            return ForAll([getattr(o, item) for o in self._objects])
+
+    def __setattr__(self, name, value):
+        if name[0] == '_':
+            return super().__setattr__(name, value)
+        else:
+            for o in self._objects:
+                setattr(o, name, value)
+
+
+class EllipsisList(list):
+    def __getitem__(self, item):
+        if item is ...:
+            return ForAll(list(self))
+        else:
+            return super().__getitem__(item)
+
+
 class Configuration:
     _all = {}
 
@@ -99,7 +130,7 @@ class Configuration:
                     if hasattr(r, k):
                         getattr(r, k).append(tpe(**v))
                     else:
-                        setattr(r, k, [tpe(**v)])
+                        setattr(r, k, EllipsisList([tpe(**v)]))
                 else:
                     assert not hasattr(r, k), 'Multiple configurations for {!r} found'.format(k)
                     setattr(r, k, tpe(**v))
