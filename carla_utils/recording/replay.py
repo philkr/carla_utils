@@ -51,4 +51,13 @@ def replay(client, recording: str, fps: int = 10):
         world.apply_settings(settings)
 
         # Don't know why this doesn't work.
+        # client.stop_replayer will hang the server, every time
         # client.stop_replayer(keep_actors=False)
+        # potential workaround make a tick infinitely long (does not work)
+        # client.set_replayer_time_factor(1000)
+        # world.tick()
+        # client.set_replayer_time_factor(1)
+
+        # There is an long loop for keep_actors=False, which may hang the server
+        client.stop_replayer(keep_actors=True)
+        # TODO: Let's manually purge all actors
