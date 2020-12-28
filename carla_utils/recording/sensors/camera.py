@@ -41,9 +41,9 @@ class RGBCamera(Sensor):
             output_file = str(output_path) + settings.name + '.' + settings.output_format
             self.writer = imageio.get_writer(output_file, **settings.output_attributes)
         elif settings.output_format is not None:
-            logging.warn('Sensor {!r}: Unknown output_format {!r}'.format(settings.name, settings.output_format))
+            logging.warning('Sensor {!r}: Unknown output_format {!r}'.format(settings.name, settings.output_format))
         else:
-            logging.warn('Sensor {!r}: no output_format specified.'.format(settings.name))
+            logging.warning('Sensor {!r}: no output_format specified.'.format(settings.name))
 
     def _callback(self, sensor_data):
         super()._callback(sensor_data)

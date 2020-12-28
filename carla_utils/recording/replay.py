@@ -50,5 +50,7 @@ def replay(client, recording: str, fps: int = 10):
         settings.synchronous_mode = False
         world.apply_settings(settings)
 
-        # Don't know why this doesn't work.
-        # client.stop_replayer(keep_actors=False)
+        # client.stop_replayer(keep_actors=False) will hang the server, every time.
+        # The carla server will parse the recording on keep_actors=False causing the client to timeout.
+        # The keep the actors here, but any new replay or scenario will purge them after.
+        client.stop_replayer(keep_actors=True)

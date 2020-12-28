@@ -70,12 +70,6 @@ class SensorSyncWorld:
     def register_sensor(self, name, obj):
         self._sensors[name] = obj
 
-    def __getitem__(self, name):
-        return self._sensors.get(name, None)
-
-    def __iter__(self):
-        yield from self._sensors.items()
-
     def tick(self, *args, timeout=1.0, **kwargs):
         world_tick = self._world.tick(*args, **kwargs)
         unfinished = set(self._sensors.keys())
@@ -97,6 +91,25 @@ class SensorSyncWorld:
 
     def __getattr__(self, item):
         return self.__dict__[item] if item[0] == '_' else getattr(self._world, item)
+
+    # Allow SensorSyncWorld to act as a dict of sensors
+    def __getitem__(self, name):
+        return self._sensors.get(name, None)
+
+    def __iter__(self):
+        yield from iter(self._sensors)
+
+    def __len__(self):
+        return len(self._sensors)
+
+    def items(self):
+        yield from self._sensors.items()
+
+    def values(self):
+        yield from self._sensors.values()
+
+    def keys(self):
+        yield from self._sensors.keys()
 
 
 class Sensor(SensorRegistry):
