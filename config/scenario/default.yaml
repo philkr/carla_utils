@@ -1,11 +1,17 @@
 ---
 scenario:
-  agents:
-    - filter: "vehicle.*"
-      n: 10
-      cars_only: True
+  map: 'Town07'
+
+  actors:
+    - filter: 'vehicle.*'
+      attributes:
+        number_of_wheels: 4
+      traffic: 'dense'
       autopilot: True
-      role_name: "autopilot"
+
+    - filter: 'walker.*'
+      traffic: 'light'
+      autopilot: True
 
   synchronous_mode: True
   no_rendering_mode: True

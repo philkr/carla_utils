@@ -7,23 +7,21 @@ from .config import Configuration, Required, Settings
 __all__ = ['scenario', 'ScenarioSettings']
 
 
+presets = dict(none=0.00, light=0.20, dense=0.90)
 @Configuration.register('scenario')
 class ScenarioSettings(Settings):
-    class Agent(Settings):
-        filter: str = 'vehicle.*'
-        n: int = 0
-        cars_only: bool = False
-        role_name: str = 'autopilot'
-        autopilot: bool = True
-
-    # Agent settings
-    seed: int = None
-    agents: List[Agent] = [
-        Agent(filter='vehicle.*', n=10, cars_only=True),
-    ]
-
     # World settings
     map: str = 'town03'
+    seed: int = None
+
+    class Actor(Settings):
+        filter: str = Required
+        attributes: dict = {}
+        traffic: str = 'none'
+        autopilot: bool = True
+
+    # Actor settings
+    actors: List[Actor] = [Actor(filter='vehicle.*', traffic='light')]
 
     # Simulator
     synchronous_mode = True
@@ -63,19 +61,22 @@ def scenario(client, config: ScenarioSettings, traffic_manager=None):
 
         # Create the blueprints and spawn vehicles batch commands
         blueprints = world.get_blueprint_library()
-        batch = []
-        for ac in config.agents:
-            vehicle_blueprints = blueprints.filter(ac.filter)
-            if ac.cars_only:
-                vehicle_blueprints = [x for x in vehicle_blueprints if int(x.get_attribute('number_of_wheels')) == 4]
 
-            for i in range(ac.n):
-                blueprint = rnd.choice(vehicle_blueprints)
+        batch = []
+        for ac in config.actors:
+            actor_blueprints = [blueprint for blueprint in blueprints.filter(ac.filter) if all(
+                type(attr)(blueprint.get_attribute(id)) == attr for id, attr in ac.attributes.items())]
+
+            for i in range(int(presets[ac.traffic] * len(spawn_points))):
+                blueprint = rnd.choice(actor_blueprints)
+                print(ac.filter, blueprint, blueprint.get_attribute('role_name'))
                 for a in blueprint:
                     if a.is_modifiable:
                         blueprint.set_attribute(a.id, rnd.choice(a.recommended_values))
-                blueprint.set_attribute('role_name', ac.role_name)
-                # Add the blueprint to the spawn  points
+                blueprint.set_attribute('role_name', 'autopilot')
+
+                # Add the blueprint to the spawn points
+                # TODO: reconcile this with walker spawn logic
                 if len(batch) < len(spawn_points):
                     transform = spawn_points[len(batch)]
                     batch.append(SpawnActor(blueprint, transform).
