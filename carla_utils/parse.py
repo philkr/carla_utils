@@ -8,6 +8,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
     world_map, frames = parse(args.recording)
+
     print('Map              {!r:>10}'.format(world_map.name))
     print('# frames         {!r:>10}'.format(len(frames)))
     for n in ['cars', 'bikes', 'walkers', 'traffic_lights', 'other_actors', 'invalid_actors']:

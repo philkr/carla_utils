@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from ctypes import c_uint8, c_uint16, c_uint32
+from ctypes import c_uint8, c_uint16, c_uint32, c_float, sizeof
 
 __all__ = ['record']
 
@@ -43,3 +43,27 @@ def record(client, filename):
             f.write(c_uint16(len(map_name)))
             f.write(map_name)
             f.write(map_data)
+
+            # Actual traffic lights.
+            w = client.get_world()
+            traffic_lights = list()
+
+            for l in m.get_all_landmarks():
+                light = w.get_traffic_light(l)
+
+                if light is not None:
+                    xform = l.transform
+                    loc = [(x.x, x.y, x.z) for x in [xform.location]][0]
+                    rot = [(x.pitch, x.roll, x.yaw) for x in [xform.rotation]][0]
+
+                    traffic_lights.append((light.id, loc, rot))
+
+            f.write(c_uint8(251))
+            f.write(c_uint32(len(traffic_lights) * (sizeof(c_uint16) + 6 * sizeof(c_float)) + 2))
+            f.write(c_uint16(len(traffic_lights)))
+
+            for lid, loc, rot in traffic_lights:
+                f.write(c_uint16(lid))
+
+                for x in loc + rot:
+                    f.write(c_float(x))

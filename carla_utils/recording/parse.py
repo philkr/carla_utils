@@ -131,6 +131,10 @@ class Frame:
         return [a for a in self.actors if a.type == 3]
 
     @property
+    def light_landmarks(self):
+        return [a for a in self.actors if a.type == 5]
+
+    @property
     def invalid_actors(self):
         return [a for a in self.actors if a.type == 4]
 
@@ -141,6 +145,7 @@ attribute_type_map = {0: bool, 1: int, 2: float, 3: bytes, 4: lambda s: [int(c) 
 def parse(filename):
     frames = []
     world_map = None
+    landmark_lights = dict()
 
     with open(filename, 'rb') as f:
         r = Read(f)
@@ -240,5 +245,28 @@ def parse(filename):
                 map_name = r_packet.string()
                 map_data = decompress(r_packet.read())
                 world_map = Map(map_name, map_data)
+            elif pid == 251:
+                n = r_packet.uint16()
+
+                for i in range(n):
+                    lid = r_packet.uint16()
+                    loc = r_packet.float32x3()
+                    rot = r_packet.float32x3()
+
+                    if lid not in landmark_lights:
+                        landmark_lights[lid] = list()
+
+                    landmark_lights[lid].append((loc, rot))
+
+    for frame in frames:
+        for light in frame.traffic_lights:
+            for i, (loc, rot) in enumerate(landmark_lights[light.id]):
+                actor = copy(light)
+                actor.id = '%d_%d' % (actor.id, i)
+                actor.location = loc
+                actor.rotation = rot
+                actor.type = 5
+
+                frame.add_actor(actor.id, actor)
 
     return world_map, frames

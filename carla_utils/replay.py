@@ -34,6 +34,17 @@ def main():
             logging.info('{} Sensors:'.format(len(sensor_world)))
             for k, v in sensor_world.items():
                 logging.info('  {!r}: {!r}'.format(k, v))
+            import matplotlib.pyplot as plt
+
+            for x in sensor_world.get_actors().filter('*light*'):
+                try:
+                    loc = x.get_location()
+                    plt.plot(loc.x, loc.y, 'r.')
+                except:
+                    pass
+            plt.show()
+            import pdb; pdb.set_trace()
+
             try:
                 for _ in tqdm(range(min(args.max_steps, world._max_tick))):
                     sensor_world.tick()

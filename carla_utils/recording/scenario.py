@@ -26,8 +26,8 @@ class ScenarioSettings(Settings):
     map: str = 'town03'
 
     # Simulator
-    synchronous_mode = True
-    no_rendering_mode = True
+    synchronous_mode: bool = True
+    no_rendering_mode: bool = True
     fixed_delta_seconds = 0.1
 
 
@@ -41,6 +41,7 @@ def scenario(client, config: ScenarioSettings, traffic_manager=None):
         # Simulator settings
         ws = world.get_settings()
         ws.synchronous_mode = config.synchronous_mode
+
         ws.no_rendering_mode = config.no_rendering_mode
         ws.fixed_delta_seconds = config.fixed_delta_seconds
         world.apply_settings(ws)
