@@ -260,7 +260,7 @@ def parse(filename):
 
     for frame in frames:
         for light in frame.traffic_lights:
-            for i, (loc, rot) in enumerate(landmark_lights[light.id]):
+            for i, (loc, rot) in enumerate(landmark_lights.get(light.id, [])):
                 actor = copy(light)
                 actor.id = '%d_%d' % (actor.id, i)
                 actor.location = loc

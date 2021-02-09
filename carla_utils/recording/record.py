@@ -1,3 +1,5 @@
+import carla
+
 from contextlib import contextmanager
 from ctypes import c_uint8, c_uint16, c_uint32, c_float, sizeof
 
@@ -46,17 +48,20 @@ def record(client, filename):
 
             # Actual traffic lights.
             w = client.get_world()
+            landmarks = w.get_map().get_all_landmarks_of_type('1000001')
+
             traffic_lights = list()
 
-            for l in m.get_all_landmarks():
-                light = w.get_traffic_light(l)
+            for b in w.get_level_bbs(carla.CityObjectLabel.TrafficLight):
+                loc = [(x.x, x.y, x.z) for x in [b.location]][0]
+                rot = [(x.pitch, x.roll, x.yaw) for x in [b.rotation]][0]
 
-                if light is not None:
-                    xform = l.transform
-                    loc = [(x.x, x.y, x.z) for x in [xform.location]][0]
-                    rot = [(x.pitch, x.roll, x.yaw) for x in [xform.rotation]][0]
+                sorted_landmarks = sorted(landmarks, key=lambda l: l.transform.location.distance(b.location))
+                light = w.get_traffic_light(sorted_landmarks[0])
 
-                    traffic_lights.append((light.id, loc, rot))
+                assert light is not None
+
+                traffic_lights.append((light.id, loc, rot))
 
             f.write(c_uint8(251))
             f.write(c_uint32(len(traffic_lights) * (sizeof(c_uint16) + 6 * sizeof(c_float)) + 2))
