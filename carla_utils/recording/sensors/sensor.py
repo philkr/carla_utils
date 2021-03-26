@@ -1,11 +1,13 @@
 import logging
 import random
 import queue
+import json
 
 from contextlib import contextmanager
 from pathlib import Path
 from typing import List
 from carla_utils.recording.config import Configuration, Required, Settings
+from .utils import transform_to_matrix
 
 
 @Configuration.register('render')
@@ -139,6 +141,9 @@ class Sensor(SensorRegistry):
         self.finalize = lambda frame_number: world._sensor_tick(frame_number, settings.name)
         self.actor.listen(self.callback)
 
+        self.metadata = dict()
+        self.metadata['transform'] = transform_to_matrix(transform).tolist()
+
     def _callback(self, x):
         pass
 
@@ -178,8 +183,15 @@ def sensors(world, render_config: RenderSettings, sensor_config: List[SensorSett
     sensors = []
     for c in sensor_config:
         S = Sensor.find(c.type)
+
         assert S is not None, 'No sensor of type {!r} found!'.format(c.type)
-        sensors.append(S(world, c, output_path))
+
+        s = S(world, c, output_path)
+        sensors.append(s)
+
+        if s.metadata:
+            meta_path = output_path / ('%s.json' % c.name)
+            meta_path.write_text(json.dumps(s.metadata))
 
     try:
         # leave the context manager

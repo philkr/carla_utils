@@ -59,7 +59,6 @@ def scenario(client, config: ScenarioSettings, traffic_manager=None):
         # Shortcuts for later
         SpawnActor = carla.command.SpawnActor
         SetAutopilot = carla.command.SetAutopilot
-        SetVehicleLightState = carla.command.SetVehicleLightState
         FutureActor = carla.command.FutureActor
 
         # Create the blueprints and spawn vehicles batch commands

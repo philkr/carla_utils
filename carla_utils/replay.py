@@ -9,6 +9,7 @@ def main():
     from argparse import ArgumentParser
     import os
     from .util import add_client_argument, client_from_args
+
     logging.basicConfig(level=os.environ.get('LOGLEVEL', 'WARN').upper())
 
     # Setup the standard ArgumentParser
@@ -19,8 +20,10 @@ def main():
     # Recording setting
     parser.add_argument('-s', '--max_steps', type=int, default=100000)
     parser.add_argument('recording', type=lambda x: str(pathlib.Path(x).resolve()))
-    parser.add_argument('output_path')
+    parser.add_argument('output_path', type=pathlib.Path)
+
     args = parser.parse_args()
+    args.output_path.mkdir(exist_ok=True, parents=False)
 
     # Create the config
     cfg = Configuration.from_args(args)

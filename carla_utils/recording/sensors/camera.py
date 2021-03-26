@@ -5,6 +5,10 @@ from pathlib import Path
 from .sensor import Sensor, SensorSettings
 
 
+IMAGE_FORMATS = {'jpg', 'png', 'webp', 'bmp'}
+VIDEO_FORMATS = {'mov', 'avi', 'mpg', 'mpeg', 'mp4', 'mkv', 'wmv'}
+
+
 class TickingImageWriter:
     def __init__(self, path_pattern: str, **kwargs):
         self.tick = 0
@@ -22,8 +26,20 @@ class TickingImageWriter:
         self.tick += 1
 
 
-IMAGE_FORMATS = {'jpg', 'png', 'webp', 'bmp'}
-VIDEO_FORMATS = {'mov', 'avi', 'mpg', 'mpeg', 'mp4', 'mkv', 'wmv'}
+class TickingPILWriter:
+    def __init__(self, path_pattern: str, **kwargs):
+        self.tick = 0
+        self.path_pattern = path_pattern
+        self.kwargs = kwargs
+
+    def close(self):
+        pass
+
+    def append_data(self, data, meta={}):
+        from PIL import Image
+
+        Image.fromarray(data).save(self.path_pattern.format(self.tick))
+        self.tick += 1
 
 
 @Sensor.register
@@ -32,9 +48,18 @@ class RGBCamera(Sensor):
 
     def __init__(self, world, settings: SensorSettings, output_path: Path):
         super().__init__(world, settings, output_path)
+
         import imageio
+
         self.writer = None
-        if settings.output_format in IMAGE_FORMATS:
+
+        if settings.output_format == 'PIL':
+            sensor_output_path = output_path / settings.name
+            sensor_output_path.mkdir(exist_ok=False, parents=False)
+            output_file = str(sensor_output_path / '{:06d}.png')
+
+            self.writer = TickingPILWriter(output_file, **settings.output_attributes)
+        elif settings.output_format in IMAGE_FORMATS:
             output_file = str(output_path) + settings.name + '_{:06d}.' + settings.output_format
             self.writer = TickingImageWriter(output_file, **settings.output_attributes)
         elif settings.output_format in VIDEO_FORMATS:
@@ -44,6 +69,24 @@ class RGBCamera(Sensor):
             logging.warning('Sensor {!r}: Unknown output_format {!r}'.format(settings.name, settings.output_format))
         else:
             logging.warning('Sensor {!r}: no output_format specified.'.format(settings.name))
+
+        f = settings.attributes['image_size_x'] / (2 * np.tan(settings.attributes['fov'] * np.pi / 360))
+        cx = settings.attributes['image_size_x'] / 2
+        cy = settings.attributes['image_size_y'] / 2
+
+        self.metadata['intrinsics'] = [
+            [f, 0, cx],
+            [0, f, cy],
+            [0, 0, 1]]
+
+        P = np.float32([
+            [ 0,  0, 1, 0],
+            [-1,  0, 0, 0],
+            [ 0, -1, 0, 0],
+            [ 0,  0, 0, 1],
+        ])
+
+        self.metadata['transform'] = (np.float32(self.metadata['transform']) @ P).tolist()
 
     def _callback(self, sensor_data):
         super()._callback(sensor_data)

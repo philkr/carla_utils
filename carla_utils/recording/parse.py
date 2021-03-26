@@ -70,6 +70,9 @@ class Actor:
         cr, cp, cy = np.cos(np.radians(self.rotation))
         return np.array([cy * sp * sr - sy * cr, sy * sp * sr + cy * cr, -cp * sr], dtype='f4')
 
+    def __copy__(self):
+        return type(self)(self.type, self.location, self.rotation, self.uid, self.desc, self.attributes)
+
 
 class Frame:
     def __init__(self, frame_id, duration, elapsed, prev_frame=None):
@@ -262,11 +265,11 @@ def parse(filename):
         for light in frame.traffic_lights:
             for i, (loc, rot) in enumerate(landmark_lights.get(light.id, [])):
                 actor = copy(light)
-                actor.id = '%d_%d' % (actor.id, i)
                 actor.location = loc
                 actor.rotation = rot
                 actor.type = 5
+                actor.state = light.state
 
-                frame.add_actor(actor.id, actor)
+                frame.add_actor('%d_%d' % (light.id, i), actor)
 
     return world_map, frames
