@@ -1,5 +1,3 @@
-import carla
-
 from contextlib import contextmanager
 from ctypes import c_uint8, c_uint16, c_uint32, c_float, sizeof
 
@@ -8,6 +6,7 @@ __all__ = ['record']
 
 @contextmanager
 def record(client, filename):
+    import carla
     from tempfile import NamedTemporaryFile
     from zlib import compress
     from time import sleep
